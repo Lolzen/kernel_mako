@@ -83,6 +83,8 @@ VOS_STATUS btcOpen (tHalHandle hHal)
 {
    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
    VOS_STATUS vosStatus;
+   int i;
+
    /* Initialize BTC configuartion. */
    pMac->btc.btcConfig.btcExecutionMode = BTC_SMART_COEXISTENCE;
    pMac->btc.btcConfig.btcConsBtSlotsToBlockDuringDhcp = 0;
@@ -109,6 +111,22 @@ VOS_STATUS btcOpen (tHalHandle hHal)
    pMac->btc.btcEventState = 0;
    pMac->btc.btcHBActive = VOS_TRUE;
    pMac->btc.btcScanCompromise = VOS_FALSE;
+
+   for (i = 0; i < MWS_COEX_MAX_VICTIM_TABLE; i++)
+   {
+      pMac->btc.btcConfig.mwsCoexVictimWANFreq[i] = 0;
+      pMac->btc.btcConfig.mwsCoexVictimWLANFreq[i] = 0;
+      pMac->btc.btcConfig.mwsCoexVictimConfig[i] = 0;
+      pMac->btc.btcConfig.mwsCoexVictimConfig2[i] = 0;
+   }
+
+   for (i = 0; i < MWS_COEX_MAX_CONFIG; i++)
+   {
+      pMac->btc.btcConfig.mwsCoexConfig[i] = 0;
+   }
+
+   pMac->btc.btcConfig.mwsCoexModemBackoff = 0;
+   pMac->btc.btcConfig.SARPowerBackoff = 0;
 
    vosStatus = vos_timer_init( &pMac->btc.restoreHBTimer,
                       VOS_TIMER_TYPE_SW,
@@ -275,10 +293,10 @@ static VOS_STATUS btcSendBTEvent(tpAniSirGlobal pMac, tpSmeBtEvent pBtEvent)
     \param  pBtEvent -  Pointer to a caller allocated object of type tSmeBtEvent.
                         Caller owns the memory and is responsible for freeing it.
     \return VOS_STATUS
-            VOS_STATUS_E_FAILURE – BT Event not passed to HAL. This can happen
+            VOS_STATUS_E_FAILURE ? BT Event not passed to HAL. This can happen
                                    if driver has not yet been initialized or if BTC
                                    Events Layer has been disabled.
-            VOS_STATUS_SUCCESS   – BT Event passed to HAL
+            VOS_STATUS_SUCCESS   ? BT Event passed to HAL
   ---------------------------------------------------------------------------*/
 VOS_STATUS btcSignalBTEvent (tHalHandle hHal, tpSmeBtEvent pBtEvent)
 {
@@ -827,7 +845,6 @@ static VOS_STATUS btcDeferAclCreate( tpAniSirGlobal pMac, tpSmeBtEvent pEvent )
                 status = VOS_STATUS_E_FAILURE;
                 break;
             }
-
             pAclEvent = &pAclEventHist->btAclConnection[pAclEventHist->bNextEventIdx - 1];
             if(BT_EVENT_CREATE_ACL_CONNECTION == pAclEventHist->btEventType[pAclEventHist->bNextEventIdx - 1])
             {
@@ -992,7 +1009,8 @@ static VOS_STATUS btcDeferSyncCreate( tpAniSirGlobal pMac, tpSmeBtEvent pEvent )
                 (pSyncEventHist->bNextEventIdx > BT_MAX_NUM_EVENT_SCO_DEFERRED))
             {
                 VOS_ASSERT(0);
-                return VOS_STATUS_E_FAILURE;
+                status = VOS_STATUS_E_FAILURE;
+                return status;
             }
             pSyncEvent = &pSyncEventHist->btSyncConnection[pSyncEventHist->bNextEventIdx - 1];
             if(BT_EVENT_CREATE_SYNC_CONNECTION == 

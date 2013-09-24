@@ -2588,18 +2588,25 @@ eCsrCfgDot11Mode csrFindBestPhyMode( tpAniSirGlobal pMac, tANI_U32 phyMode )
     eCsrBand eBand = pMac->roam.configParam.eBand;
 
 
+    if ((0 == phyMode) ||
 #ifdef WLAN_FEATURE_11AC
-    if ((0 == phyMode) || ((eCSR_DOT11_MODE_AUTO & phyMode) && (IS_FEATURE_SUPPORTED_BY_FW(DOT11AC))) 
-           || ((eCSR_DOT11_MODE_11ac & phyMode) && (IS_FEATURE_SUPPORTED_BY_FW(DOT11AC))))
-    {
-        cfgDot11ModeToUse = eCSR_CFG_DOT11_MODE_11AC;
-    }
-    else
+        (eCSR_DOT11_MODE_11ac & phyMode) ||
 #endif
-
-    if ((0 == phyMode) || (eCSR_DOT11_MODE_AUTO & phyMode))
+        (eCSR_DOT11_MODE_AUTO & phyMode))
     {
-        cfgDot11ModeToUse = eCSR_CFG_DOT11_MODE_11N;
+#ifdef WLAN_FEATURE_11AC
+        if (IS_FEATURE_SUPPORTED_BY_FW(DOT11AC))
+        {
+           cfgDot11ModeToUse = eCSR_CFG_DOT11_MODE_11AC;
+        }
+        else
+#endif
+        {
+           /* Default to 11N mode if user has configured 11ac mode
+            * and FW doesn't supports 11ac mode .
+            */
+           cfgDot11ModeToUse = eCSR_CFG_DOT11_MODE_11N;
+        }
     }
     else
     {
@@ -2767,15 +2774,20 @@ csrIsconcurrentsessionValid(tpAniSirGlobal pMac,tANI_U32 cursessionId,
                 case VOS_STA_SAP_MODE:
                     if((pMac->roam.roamSession[sessionId].bssParams.bssPersona
                                       == VOS_STA_SAP_MODE)&&
-                    (pMac->roam.roamSession[sessionId].connectState != eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED))
+                       (pMac->roam.roamSession[sessionId].connectState
+                                      != eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED))
                     {
                         smsLog(pMac, LOGE, FL(" ****SoftAP mode already exists ****"));
                         return eHAL_STATUS_FAILURE;
                     }
-                    
-                    else if((pMac->roam.roamSession[sessionId].bssParams.bssPersona
-                                      == VOS_P2P_GO_MODE) &&
-                    (pMac->roam.roamSession[sessionId].connectState != eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED))
+                    else if( (pMac->roam.roamSession[sessionId].bssParams.bssPersona
+                                      == VOS_P2P_GO_MODE &&
+                              pMac->roam.roamSession[sessionId].connectState
+                                      != eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED) ||
+                             (pMac->roam.roamSession[sessionId].bssParams.bssPersona
+                                      == VOS_IBSS_MODE &&
+                              pMac->roam.roamSession[sessionId].connectState
+                                      != eCSR_ASSOC_STATE_TYPE_IBSS_DISCONNECTED))
                     {
                         smsLog(pMac, LOGE, FL(" ****Cannot start Multiple Beaconing Role ****"));
                         return eHAL_STATUS_FAILURE;
@@ -2795,20 +2807,45 @@ csrIsconcurrentsessionValid(tpAniSirGlobal pMac,tANI_U32 cursessionId,
                 case VOS_P2P_GO_MODE:
                     if((pMac->roam.roamSession[sessionId].bssParams.bssPersona
                                       == VOS_P2P_GO_MODE) &&
-                    (pMac->roam.roamSession[sessionId].connectState != eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED))
+                       (pMac->roam.roamSession[sessionId].connectState
+                                      != eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED))
                     {
                         smsLog(pMac, LOGE, FL(" ****P2P GO mode already exists ****"));
                         return eHAL_STATUS_FAILURE;
                     }
-                    else if((pMac->roam.roamSession[sessionId].bssParams.bssPersona
-                                      == VOS_STA_SAP_MODE) &&
-                    (pMac->roam.roamSession[sessionId].connectState != eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED))
+                    else if( (pMac->roam.roamSession[sessionId].bssParams.bssPersona
+                                      == VOS_STA_SAP_MODE &&
+                              pMac->roam.roamSession[sessionId].connectState
+                                      != eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED) ||
+                             (pMac->roam.roamSession[sessionId].bssParams.bssPersona
+                                      == VOS_IBSS_MODE &&
+                              pMac->roam.roamSession[sessionId].connectState
+                                      != eCSR_ASSOC_STATE_TYPE_IBSS_DISCONNECTED) )
                     {
                         smsLog(pMac, LOGE, FL(" ****Cannot start Multiple Beaconing Role ****"));
                         return eHAL_STATUS_FAILURE;
                     }
                     break;
-
+                case VOS_IBSS_MODE:
+                    if((pMac->roam.roamSession[sessionId].bssParams.bssPersona
+                                      == VOS_IBSS_MODE) &&
+                       (pMac->roam.roamSession[sessionId].connectState
+                                      != eCSR_ASSOC_STATE_TYPE_IBSS_CONNECTED))
+                    {
+                        smsLog(pMac, LOGE, FL(" ****IBSS mode already exists ****"));
+                        return eHAL_STATUS_FAILURE;
+                    }
+                    else if( (pMac->roam.roamSession[sessionId].bssParams.bssPersona
+                                      == VOS_P2P_GO_MODE ||
+                              pMac->roam.roamSession[sessionId].bssParams.bssPersona
+                                      == VOS_STA_SAP_MODE) &&
+                              pMac->roam.roamSession[sessionId].connectState
+                                     != eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED)
+                    {
+                        smsLog(pMac, LOGE, FL(" ****Cannot start Multiple Beaconing Role ****"));
+                        return eHAL_STATUS_FAILURE;
+                    }
+                    break;
                 default :
                     smsLog(pMac, LOGE, FL("***Persona not handled = %d*****"),currBssPersona);
                     break;
@@ -3060,7 +3097,7 @@ eHalStatus csrValidateMCCBeaconInterval(tpAniSirGlobal pMac, tANI_U8 channelId,
                              */
                             //Calculate beacon Interval for P2P-GO incase of MCC
                             new_beaconInterval = csrCalculateMCCBeaconInterval(pMac, 
-                                                pMac->roam.roamSession[sessionId].connectedProfile.beaconInterval,
+                                                pMac->roam.roamSession[sessionId].bssParams.beaconInterval,
                                                 *beaconInterval );
                             if(*beaconInterval != new_beaconInterval)
                                 *beaconInterval = new_beaconInterval;
@@ -5993,11 +6030,18 @@ eCsrCfgDot11Mode csrGetCfgDot11ModeFromCsrPhyMode(tCsrRoamProfile *pProfile, eCs
         }
         else
         {
-            cfgDot11Mode = eCSR_CFG_DOT11_MODE_11AC;
+            cfgDot11Mode = eCSR_CFG_DOT11_MODE_11N;
         }
         break;
     case eCSR_DOT11_MODE_11ac_ONLY:
-        cfgDot11Mode = eCSR_CFG_DOT11_MODE_11AC_ONLY;
+        if (IS_FEATURE_SUPPORTED_BY_FW(DOT11AC))
+        {
+            cfgDot11Mode = eCSR_CFG_DOT11_MODE_11AC_ONLY;
+        }
+        else
+        {
+            cfgDot11Mode = eCSR_CFG_DOT11_MODE_11N;
+        }
         break;
 #endif
     default:
