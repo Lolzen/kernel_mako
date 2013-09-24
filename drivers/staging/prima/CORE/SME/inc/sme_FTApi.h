@@ -51,9 +51,9 @@
   
   \brief macros and prototype for SME APIs
   
-   Copyright 2008 (c) Qualcomm, Incorporated.  All Rights Reserved.
+   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
    
-   Qualcomm Confidential and Proprietary.
+   Qualcomm Technologies Confidential and Proprietary.
   
   ========================================================================*/
 typedef enum eFTIEState
@@ -88,7 +88,11 @@ typedef struct sFTSMEContext
     v_BOOL_t          setFTPTKState;
 
     // Time to trigger reassoc once pre-auth is successful
+<<<<<<< HEAD
     tPalTimerHandle   preAuthReassocIntvlTimer;
+=======
+    vos_timer_t       preAuthReassocIntvlTimer;
+>>>>>>> eee6ad8... prima 3.2.3.178 caf
     tCsrRoamSetKey    *pCsrFTKeyInfo;
 
 } tftSMEContext, *tpftSMEContext;

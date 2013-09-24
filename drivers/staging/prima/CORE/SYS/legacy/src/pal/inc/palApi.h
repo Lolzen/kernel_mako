@@ -205,6 +205,8 @@ eHalStatus palWriteDeviceMemory( tHddHandle hHdd, tANI_U32 memOffset, tANI_U8 *p
     try to use it unless the status returns success).
 
   -------------------------------------------------------------------------------*/
+#ifndef FEATURE_WLAN_PAL_MEM_DISABLE
+
 #ifdef MEMORY_DEBUG
 #define palAllocateMemory(hHdd, ppMemory, numBytes) palAllocateMemory_debug(hHdd, ppMemory, numBytes, __FILE__, __LINE__)
 eHalStatus palAllocateMemory_debug( tHddHandle hHdd, void **ppMemory, tANI_U32 numBytes, char* fileName, tANI_U32 lineNum );
@@ -323,10 +325,16 @@ eHalStatus palZeroMemory( tHddHandle hHdd, void *pMemory, tANI_U32 numBytes )
 
     \return tANI_BOOLEAN - returns a boolean value that tells if the memory
     locations are equal or now equal.
+<<<<<<< HEAD
 
   -------------------------------------------------------------------------------*/
 tANI_BOOLEAN palEqualMemory( tHddHandle hHdd, void *pMemory1, void *pMemory2, tANI_U32 numBytes );
+=======
+>>>>>>> eee6ad8... prima 3.2.3.178 caf
 
+  -------------------------------------------------------------------------------*/
+tANI_BOOLEAN palEqualMemory( tHddHandle hHdd, void *pMemory1, void *pMemory2, tANI_U32 numBytes );
+#endif
 /** ---------------------------------------------------------------------------
 
     \fn palFillDeviceMemory

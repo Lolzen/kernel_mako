@@ -108,7 +108,7 @@ tSirRetStatus limPopulateMacHeader( tpAniSirGlobal pMac,
                              tANI_U8* pBD,
                              tANI_U8 type,
                              tANI_U8 subType,
-                             tSirMacAddr peerAddr ,tSirMacAddr selfMacAddr)
+                             tSirMacAddr peerAddr, tSirMacAddr selfMacAddr)
 {
     tSirRetStatus   statusCode = eSIR_SUCCESS;
     tpSirMacMgmtHdr pMacHdr;
@@ -122,8 +122,7 @@ tSirRetStatus limPopulateMacHeader( tpAniSirGlobal pMac,
     pMacHdr->fc.subType = subType;
 
     // Prepare Address 1
-    palCopyMemory( pMac->hHdd,
-                   (tANI_U8 *) pMacHdr->da,
+    vos_mem_copy(  (tANI_U8 *) pMacHdr->da,
                    (tANI_U8 *) peerAddr,
                    sizeof( tSirMacAddr ));
 
@@ -131,12 +130,53 @@ tSirRetStatus limPopulateMacHeader( tpAniSirGlobal pMac,
     sirCopyMacAddr(pMacHdr->sa,selfMacAddr);
 
     // Prepare Address 3
-    palCopyMemory( pMac->hHdd,
-                   (tANI_U8 *) pMacHdr->bssId,
+    vos_mem_copy(  (tANI_U8 *) pMacHdr->bssId,
                    (tANI_U8 *) peerAddr,
                    sizeof( tSirMacAddr ));
     return statusCode;
 } /*** end limPopulateMacHeader() ***/
+
+#ifdef WLAN_FEATURE_11W
+/**
+ *
+ * \brief This function is called by various LIM modules to correctly set
+ * the Protected bit in the Frame Control Field of the 802.11 frame MAC header
+ *
+ *
+ * \param  pMac Pointer to Global MAC structure
+ *
+ * \param psessionEntry Pointer to session corresponding to the connection
+ *
+ * \param peer Peer address of the STA to which the frame is to be sent
+ *
+ * \param pMacHdr Pointer to the frame MAC header
+ *
+ * \return nothing
+ *
+ *
+ */
+void
+limSetProtectedBit(tpAniSirGlobal  pMac,
+                   tpPESession     psessionEntry,
+                   tSirMacAddr     peer,
+                   tpSirMacMgmtHdr pMacHdr)
+{
+    tANI_U16 aid;
+    tpDphHashNode pStaDs;
+
+    if( (psessionEntry->limSystemRole == eLIM_AP_ROLE) ||
+         (psessionEntry->limSystemRole == eLIM_BT_AMP_AP_ROLE) )
+    {
+
+        pStaDs = dphLookupHashEntry( pMac, peer, &aid, &psessionEntry->dph.dphHashTable );
+        if( pStaDs != NULL )
+            if( pStaDs->rmfEnabled )
+                pMacHdr->fc.wep = 1;
+    }
+    else if ( psessionEntry->limRmfEnabled )
+        pMacHdr->fc.wep = 1;
+} /*** end limSetProtectedBit() ***/
+#endif
 
 /**
  * \brief limSendProbeReqMgmtFrame
@@ -213,7 +253,7 @@ limSendProbeReqMgmtFrame(tpAniSirGlobal pMac,
     // The scheme here is to fill out a 'tDot11fProbeRequest' structure
     // and then hand it off to 'dot11fPackProbeRequest' (for
     // serialization).  We start by zero-initializing the structure:
-    palZeroMemory( pMac->hHdd, ( tANI_U8* )&pr, sizeof( pr ) );
+    vos_mem_set(( tANI_U8* )&pr, sizeof( pr ), 0);
 
     // & delegating to assorted helpers:
     PopulateDot11fSSID( pMac, pSsid, &pr.SSID );
@@ -330,11 +370,11 @@ limSendProbeReqMgmtFrame(tpAniSirGlobal pMac,
     }
 
     // Paranoia:
-    palZeroMemory( pMac->hHdd, pFrame, nBytes );
+    vos_mem_set( pFrame, nBytes, 0 );
 
     // Next, we fill out the buffer descriptor:
     nSirStatus = limPopulateMacHeader( pMac, pFrame, SIR_MAC_MGMT_FRAME,
-                                SIR_MAC_MGMT_PROBE_REQ, bssid ,SelfMacAddr);
+                                SIR_MAC_MGMT_PROBE_REQ, bssid, SelfMacAddr);
     if ( eSIR_SUCCESS != nSirStatus )
     {
         limLog( pMac, LOGE, FL("Failed to populate the buffer descrip"
@@ -365,7 +405,7 @@ limSendProbeReqMgmtFrame(tpAniSirGlobal pMac,
     // Append any AddIE if present.
     if( nAdditionalIELen )
     {
-        palCopyMemory( pMac->hHdd, pFrame+sizeof(tSirMacMgmtHdr)+nPayload, 
+        vos_mem_copy( pFrame+sizeof(tSirMacMgmtHdr)+nPayload,
                                                     pAdditionalIE, nAdditionalIELen );
         nPayload += nAdditionalIELen;
     }
@@ -423,8 +463,8 @@ tSirRetStatus limGetAddnIeForProbeResp(tpAniSirGlobal pMac,
             return eSIR_FAILURE;
         }
 
-        if( (palAllocateMemory(pMac->hHdd, (void**)&tempbuf,
-             left)) != eHAL_STATUS_SUCCESS)
+        tempbuf = vos_mem_malloc(left);
+        if ( NULL == tempbuf )
         {
             PELOGE(limLog(pMac, LOGE,
                  FL("Unable to allocate memory to store addn IE"));)
@@ -441,21 +481,21 @@ tSirRetStatus limGetAddnIeForProbeResp(tpAniSirGlobal pMac,
                 limLog( pMac, LOGE,
                    FL("****Invalid IEs eid = %d elem_len=%d left=%d*****"),
                                                    elem_id,elem_len,left);
-                palFreeMemory(pMac->hHdd, tempbuf);
+                vos_mem_free(tempbuf);
                 return eSIR_FAILURE;
             }
             if ( !( (SIR_MAC_EID_VENDOR == elem_id) &&
                    (memcmp(&ptr[2], SIR_MAC_P2P_OUI, SIR_MAC_P2P_OUI_SIZE)==0) ) )
             {
-                palCopyMemory ( pMac->hHdd, tempbuf + tempLen, &ptr[0], elem_len + 2);
+                vos_mem_copy (tempbuf + tempLen, &ptr[0], elem_len + 2);
                 tempLen += (elem_len + 2);
             }
             left -= elem_len;
             ptr += (elem_len + 2);
        }
-       palCopyMemory ( pMac->hHdd, addIE, tempbuf, tempLen);
+       vos_mem_copy (addIE, tempbuf, tempLen);
        *addnIELen = tempLen;
-       palFreeMemory(pMac->hHdd, tempbuf);
+       vos_mem_free(tempbuf);
     }
     return eSIR_SUCCESS;
 }
@@ -500,17 +540,21 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
     {
         return;
     }
-    
-    if(eHAL_STATUS_SUCCESS != palAllocateMemory(pMac->hHdd, 
-                                                (void **)&pFrm, sizeof(tDot11fProbeResponse)))
+
+    pFrm = vos_mem_malloc(sizeof(tDot11fProbeResponse));
+    if ( NULL == pFrm )
     {
+<<<<<<< HEAD
         limLog(pMac, LOGE, FL("Unable to PAL allocate memory in limSendProbeRspMgmtFrame") );
+=======
+        limLog(pMac, LOGE, FL("Unable to allocate memory in limSendProbeRspMgmtFrame") );
+>>>>>>> eee6ad8... prima 3.2.3.178 caf
         return;
     }
 
     // Fill out 'frm', after which we'll just hand the struct off to
     // 'dot11fPackProbeResponse'.
-    palZeroMemory( pMac->hHdd, ( tANI_U8* )pFrm, sizeof( tDot11fProbeResponse ) );
+    vos_mem_set(( tANI_U8* )pFrm, sizeof( tDot11fProbeResponse ), 0);
 
     // Timestamp to be updated by TFP, below.
 
@@ -526,7 +570,7 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
         {
             limLog( pMac, LOGP, FL("Failed to retrieve WNI_CFG_BEACON_INTERVAL from CFG (%d)."),
                     nSirStatus );
-            palFreeMemory(pMac->hHdd, pFrm);
+            vos_mem_free(pFrm);
             return;
         }
         pFrm->BeaconInterval.interval = ( tANI_U16 ) cfg;
@@ -608,8 +652,8 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
     {
       PopulateDot11fWPA( pMac, &( psessionEntry->pLimStartBssReq->rsnIE ),
           &pFrm->WPA );
-      PopulateDot11fRSN( pMac, &( psessionEntry->pLimStartBssReq->rsnIE ),
-          &pFrm->RSN );
+      PopulateDot11fRSNOpaque( pMac, &( psessionEntry->pLimStartBssReq->rsnIE ),
+          &pFrm->RSNOpaque );
     }
 
     PopulateDot11fWMM( pMac, &pFrm->WMMInfoAp, &pFrm->WMMParams, &pFrm->WMMCaps, psessionEntry );
@@ -657,19 +701,20 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
                            &addnIEPresent) != eSIR_SUCCESS)
         {
             limLog(pMac, LOGP, FL("Unable to get WNI_CFG_PROBE_RSP_ADDNIE_FLAG"));
-            palFreeMemory(pMac->hHdd, pFrm);
+            vos_mem_free(pFrm);
             return;
         }
     }
 
     if (addnIEPresent)
     {
-        if( (palAllocateMemory(pMac->hHdd, (void**)&addIE, 
-             WNI_CFG_PROBE_RSP_ADDNIE_DATA1_LEN*3 )) != eHAL_STATUS_SUCCESS)
+
+        addIE = vos_mem_malloc(WNI_CFG_PROBE_RSP_ADDNIE_DATA1_LEN*3);
+        if ( NULL == addIE )
         {
             PELOGE(limLog(pMac, LOGE,
                  FL("Unable to allocate memory to store addn IE"));)
-            palFreeMemory(pMac->hHdd, pFrm);
+            vos_mem_free(pFrm);
             return;
         }
         
@@ -678,8 +723,8 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
                                   WNI_CFG_PROBE_RSP_ADDNIE_DATA1, &addnIE1Len) )
         {
             limLog(pMac, LOGP, FL("Unable to get WNI_CFG_PROBE_RSP_ADDNIE_DATA1 length"));
-            palFreeMemory(pMac->hHdd, addIE);
-            palFreeMemory(pMac->hHdd, pFrm);
+            vos_mem_free(addIE);
+            vos_mem_free(pFrm);
             return;
         }
         if (addnIE1Len <= WNI_CFG_PROBE_RSP_ADDNIE_DATA1_LEN && addnIE1Len &&
@@ -691,8 +736,8 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
             {
                 limLog(pMac, LOGP,
                      FL("Unable to get WNI_CFG_PROBE_RSP_ADDNIE_DATA1 String"));
-                palFreeMemory(pMac->hHdd, addIE);
-                palFreeMemory(pMac->hHdd, pFrm);
+                vos_mem_free(addIE);
+                vos_mem_free(pFrm);
                 return;
             }
         }
@@ -702,8 +747,8 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
                                   WNI_CFG_PROBE_RSP_ADDNIE_DATA2, &addnIE2Len) )
         {
             limLog(pMac, LOGP, FL("Unable to get WNI_CFG_PROBE_RSP_ADDNIE_DATA2 length"));
-            palFreeMemory(pMac->hHdd, addIE);
-            palFreeMemory(pMac->hHdd, pFrm);
+            vos_mem_free(addIE);
+            vos_mem_free(pFrm);
             return;
         }
         if (addnIE2Len <= WNI_CFG_PROBE_RSP_ADDNIE_DATA2_LEN && addnIE2Len &&
@@ -715,8 +760,8 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
             {
                 limLog(pMac, LOGP,
                      FL("Unable to get WNI_CFG_PROBE_RSP_ADDNIE_DATA2 String"));
-                palFreeMemory(pMac->hHdd, addIE);
-                palFreeMemory(pMac->hHdd, pFrm);
+                vos_mem_free(addIE);
+                vos_mem_free(pFrm);
                 return;
             }
         }
@@ -726,8 +771,8 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
                                   WNI_CFG_PROBE_RSP_ADDNIE_DATA3, &addnIE3Len) )
         {
             limLog(pMac, LOGP, FL("Unable to get WNI_CFG_PROBE_RSP_ADDNIE_DATA3 length"));
-            palFreeMemory(pMac->hHdd, addIE);
-            palFreeMemory(pMac->hHdd, pFrm);
+            vos_mem_free(addIE);
+            vos_mem_free(pFrm);
             return;
         }
         if (addnIE3Len <= WNI_CFG_PROBE_RSP_ADDNIE_DATA3_LEN && addnIE3Len &&
@@ -740,8 +785,8 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
             {
                 limLog(pMac, LOGP,
                      FL("Unable to get WNI_CFG_PROBE_RSP_ADDNIE_DATA3 String"));
-                palFreeMemory(pMac->hHdd, addIE);
-                palFreeMemory(pMac->hHdd, pFrm);
+                vos_mem_free(addIE);
+                vos_mem_free(pFrm);
                 return;
             }
         }
@@ -751,8 +796,8 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
         {
             limLog(pMac, LOGP,
                  FL("Unable to get final Additional IE for Probe Req"));
-            palFreeMemory(pMac->hHdd, addIE);
-                palFreeMemory(pMac->hHdd, pFrm);
+            vos_mem_free(addIE);
+            vos_mem_free(pFrm);
             return;
         }
         nBytes = nBytes + totalAddnIeLen;
@@ -783,14 +828,14 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
                                "be Response."), nBytes );
         if ( addIE != NULL )
         {
-            palFreeMemory(pMac->hHdd, addIE);
+            vos_mem_free(addIE);
         }
-        palFreeMemory(pMac->hHdd, pFrm);
+        vos_mem_free(pFrm);
         return;
     }
 
     // Paranoia:
-    palZeroMemory( pMac->hHdd, pFrame, nBytes );
+    vos_mem_set( pFrame, nBytes, 0 );
 
     // Next, we fill out the buffer descriptor:
     nSirStatus = limPopulateMacHeader( pMac, pFrame, SIR_MAC_MGMT_FRAME,
@@ -804,9 +849,9 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
                     ( void* ) pFrame, ( void* ) pPacket );
         if ( addIE != NULL )
         {
-            palFreeMemory(pMac->hHdd, addIE);
+            vos_mem_free(addIE);
         }
-        palFreeMemory(pMac->hHdd, pFrm);
+        vos_mem_free(pFrm);
         return;
     }
 
@@ -824,9 +869,9 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
         palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( void* ) pFrame, ( void* ) pPacket );
         if ( addIE != NULL )
         {
-            palFreeMemory(pMac->hHdd, addIE);
+            vos_mem_free(addIE);
         }
-        palFreeMemory(pMac->hHdd, pFrm);
+        vos_mem_free(pFrm);
         return;                 // allocated!
     }
     else if ( DOT11F_WARNED( nStatus ) )
@@ -842,33 +887,30 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
 
     if( pMac->lim.gpLimRemainOnChanReq )
     {
-        palCopyMemory ( pMac->hHdd, pFrame+sizeof(tSirMacMgmtHdr)+nPayload,
+        vos_mem_copy ( pFrame+sizeof(tSirMacMgmtHdr)+nPayload,
           pMac->lim.gpLimRemainOnChanReq->probeRspIe, (pMac->lim.gpLimRemainOnChanReq->length - sizeof( tSirRemainOnChnReq )) );
     }
 
     if ( addnIEPresent )
     {
-        if (palCopyMemory ( pMac->hHdd, pFrame+sizeof(tSirMacMgmtHdr)+nPayload,
-             &addIE[0], totalAddnIeLen) != eHAL_STATUS_SUCCESS)
-        {
-            limLog(pMac, LOGP, FL("Additional Probe Rp IE request failed while Appending: %x"),halstatus);
-            palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
-                            ( void* ) pFrame, ( void* ) pPacket );
-            if ( addIE != NULL )
-            {
-                palFreeMemory(pMac->hHdd, addIE);
-            }
-            palFreeMemory(pMac->hHdd, pFrm);
-            return;
-        }
+        vos_mem_copy(pFrame+sizeof(tSirMacMgmtHdr)+nPayload, &addIE[0], totalAddnIeLen);
     }
     if (noaLen != 0)
     {
-        if (palCopyMemory ( pMac->hHdd, &pFrame[nBytes - (total_noaLen)],
-                            &noaIe[0], total_noaLen) != eHAL_STATUS_SUCCESS)
+        if (total_noaLen > (SIR_MAX_NOA_ATTR_LEN + SIR_P2P_IE_HEADER_LEN))
         {
             limLog(pMac, LOGE,
                   FL("Not able to insert NoA because of length constraint"));
+            vos_mem_free(addIE);
+            vos_mem_free(pFrm);
+            palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
+                       ( void* ) pFrame, ( void* ) pPacket );
+            return;
+        }
+        else
+        {
+            vos_mem_copy( &pFrame[nBytes - (total_noaLen)],
+                            &noaIe[0], total_noaLen);
         }
     }
 
@@ -895,10 +937,10 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
 
     if ( addIE != NULL )
     {
-        palFreeMemory(pMac->hHdd, addIE);
+        vos_mem_free(addIE);
     }
 
-    palFreeMemory(pMac->hHdd, pFrm);
+    vos_mem_free(pFrm);
     return;
 
 
@@ -931,7 +973,7 @@ limSendAddtsReqActionFrame(tpAniSirGlobal    pMac,
 
     if ( ! pAddTS->wmeTspecPresent )
     {
-        palZeroMemory( pMac->hHdd, ( tANI_U8* )&AddTSReq, sizeof( AddTSReq ) );
+        vos_mem_set(( tANI_U8* )&AddTSReq, sizeof( AddTSReq ), 0);
 
         AddTSReq.Action.action     = SIR_MAC_QOS_ADD_TS_REQ;
         AddTSReq.DialogToken.token = pAddTS->dialogToken;
@@ -999,7 +1041,7 @@ limSendAddtsReqActionFrame(tpAniSirGlobal    pMac,
     }
     else
     {
-        palZeroMemory( pMac->hHdd, ( tANI_U8* )&WMMAddTSReq, sizeof( WMMAddTSReq ) );
+        vos_mem_set(( tANI_U8* )&WMMAddTSReq, sizeof( WMMAddTSReq ), 0);
 
         WMMAddTSReq.Action.action     = SIR_MAC_QOS_ADD_TS_REQ;
         WMMAddTSReq.DialogToken.token = pAddTS->dialogToken;
@@ -1054,7 +1096,7 @@ limSendAddtsReqActionFrame(tpAniSirGlobal    pMac,
     }
 
     // Paranoia:
-    palZeroMemory( pMac->hHdd, pFrame, nBytes );
+    vos_mem_set( pFrame, nBytes, 0 );
 
     // Next, we fill out the buffer descriptor:
     nSirStatus = limPopulateMacHeader( pMac, pFrame, SIR_MAC_MGMT_FRAME,
@@ -1086,6 +1128,13 @@ limSendAddtsReqActionFrame(tpAniSirGlobal    pMac,
     
     sirCopyMacAddr(pMacHdr->bssId,psessionEntry->bssId);
 
+<<<<<<< HEAD
+=======
+#ifdef WLAN_FEATURE_11W
+    limSetProtectedBit(pMac, psessionEntry, peerMacAddr, pMacHdr);
+#endif
+
+>>>>>>> eee6ad8... prima 3.2.3.178 caf
     // That done, pack the struct:
     if ( ! pAddTS->wmeTspecPresent )
     {
@@ -1183,7 +1232,7 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
         return;
     }
 
-    palZeroMemory( pMac->hHdd, ( tANI_U8* )&frm, sizeof( frm ) );
+    vos_mem_set( ( tANI_U8* )&frm, sizeof( frm ), 0 );
 
     limGetQosMode(psessionEntry, &qosMode);
     limGetWmeMode(psessionEntry, &wmeMode);
@@ -1291,7 +1340,7 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
     } // End if on non-NULL 'pSta'.
 
 
-   palZeroMemory( pMac->hHdd, ( tANI_U8* )&beaconParams, sizeof( tUpdateBeaconParams) );
+   vos_mem_set(( tANI_U8* )&beaconParams, sizeof( tUpdateBeaconParams), 0);
 
     if( psessionEntry->limSystemRole == eLIM_AP_ROLE ){
         if(psessionEntry->gLimProtectionControl != WNI_CFG_FORCE_POLICY_PROTECTION_DISABLE)
@@ -1369,7 +1418,7 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
     }
 
     // Paranoia:
-    palZeroMemory( pMac->hHdd, pFrame, nBytes );
+    vos_mem_set( pFrame, nBytes, 0 );
 
     // Next, we fill out the buffer descriptor:
     nSirStatus = limPopulateMacHeader( pMac,
@@ -1427,6 +1476,7 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
 
     if ( addnIEPresent )
     {
+<<<<<<< HEAD
         if (palCopyMemory ( pMac->hHdd, pFrame+sizeof(tSirMacMgmtHdr)+nPayload,
                            &addIE[0], addnIELen ) != eHAL_STATUS_SUCCESS)
         {
@@ -1435,6 +1485,9 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
                        ( void* ) pFrame, ( void* ) pPacket );
             return;
         }
+=======
+        vos_mem_copy (  pFrame+sizeof(tSirMacMgmtHdr)+nPayload, &addIE[0], addnIELen ) ;
+>>>>>>> eee6ad8... prima 3.2.3.178 caf
     }
 
     if( ( SIR_BAND_5_GHZ == limGetRFBand(psessionEntry->currentOperChannel))
@@ -1494,7 +1547,7 @@ limSendAddtsRspActionFrame(tpAniSirGlobal     pMac,
 
     if ( ! pAddTS->wmeTspecPresent )
     {
-        palZeroMemory( pMac->hHdd, ( tANI_U8* )&AddTSRsp, sizeof( AddTSRsp ) );
+        vos_mem_set( ( tANI_U8* )&AddTSRsp, sizeof( AddTSRsp ), 0 );
 
         AddTSRsp.Category.category = SIR_MAC_ACTION_QOS_MGMT;
         AddTSRsp.Action.action     = SIR_MAC_QOS_ADD_TS_RSP;
@@ -1601,7 +1654,7 @@ limSendAddtsRspActionFrame(tpAniSirGlobal     pMac,
     }
     else
     {
-        palZeroMemory( pMac->hHdd, ( tANI_U8* )&WMMAddTSRsp, sizeof( WMMAddTSRsp ) );
+        vos_mem_set( ( tANI_U8* )&WMMAddTSRsp, sizeof( WMMAddTSRsp ), 0 );
 
         WMMAddTSRsp.Category.category = SIR_MAC_ACTION_WME;
         WMMAddTSRsp.Action.action     = SIR_MAC_QOS_ADD_TS_RSP;
@@ -1638,7 +1691,7 @@ limSendAddtsRspActionFrame(tpAniSirGlobal     pMac,
     }
 
     // Paranoia:
-    palZeroMemory( pMac->hHdd, pFrame, nBytes );
+    vos_mem_set(  pFrame, nBytes, 0 );
 
     // Next, we fill out the buffer descriptor:
     nSirStatus = limPopulateMacHeader( pMac, pFrame, SIR_MAC_MGMT_FRAME,
@@ -1667,6 +1720,13 @@ limSendAddtsRspActionFrame(tpAniSirGlobal     pMac,
     #endif //TO SUPPORT BT-AMP
     sirCopyMacAddr(pMacHdr->bssId,psessionEntry->bssId);
 
+<<<<<<< HEAD
+=======
+#ifdef WLAN_FEATURE_11W
+    limSetProtectedBit(pMac, psessionEntry, peer, pMacHdr);
+#endif
+
+>>>>>>> eee6ad8... prima 3.2.3.178 caf
     // That done, pack the struct:
     if ( ! pAddTS->wmeTspecPresent )
     {
@@ -1759,7 +1819,7 @@ limSendDeltsReqActionFrame(tpAniSirGlobal  pMac,
 
     if ( ! wmmTspecPresent )
     {
-        palZeroMemory( pMac->hHdd, ( tANI_U8* )&DelTS, sizeof( DelTS ) );
+        vos_mem_set( ( tANI_U8* )&DelTS, sizeof( DelTS ), 0 );
 
         DelTS.Category.category = SIR_MAC_ACTION_QOS_MGMT;
         DelTS.Action.action     = SIR_MAC_QOS_DEL_TS_REQ;
@@ -1783,7 +1843,7 @@ limSendDeltsReqActionFrame(tpAniSirGlobal  pMac,
     }
     else
     {
-        palZeroMemory( pMac->hHdd, ( tANI_U8* )&WMMDelTS, sizeof( WMMDelTS ) );
+        vos_mem_set( ( tANI_U8* )&WMMDelTS, sizeof( WMMDelTS ), 0 );
 
         WMMDelTS.Category.category = SIR_MAC_ACTION_WME;
         WMMDelTS.Action.action     = SIR_MAC_QOS_DEL_TS_REQ;
@@ -1818,7 +1878,7 @@ limSendDeltsReqActionFrame(tpAniSirGlobal  pMac,
     }
 
     // Paranoia:
-    palZeroMemory( pMac->hHdd, pFrame, nBytes );
+    vos_mem_set( pFrame, nBytes, 0 );
 
     // Next, we fill out the buffer descriptor:
     nSirStatus = limPopulateMacHeader( pMac, pFrame, SIR_MAC_MGMT_FRAME,
@@ -1849,6 +1909,13 @@ limSendDeltsReqActionFrame(tpAniSirGlobal  pMac,
     #endif //TO SUPPORT BT-AMP
     sirCopyMacAddr(pMacHdr->bssId, psessionEntry->bssId);
     
+<<<<<<< HEAD
+=======
+#ifdef WLAN_FEATURE_11W
+    limSetProtectedBit(pMac, psessionEntry, peer, pMacHdr);
+#endif
+
+>>>>>>> eee6ad8... prima 3.2.3.178 caf
     // That done, pack the struct:
     if ( !wmmTspecPresent )
     {
@@ -1952,15 +2019,19 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
     nAddIELen = psessionEntry->pLimJoinReq->addIEAssoc.length; 
     pAddIE = psessionEntry->pLimJoinReq->addIEAssoc.addIEdata;
 
-    if(eHAL_STATUS_SUCCESS != palAllocateMemory(pMac->hHdd, 
-                                                (void **)&pFrm, sizeof(tDot11fAssocRequest)))
+    pFrm = vos_mem_malloc(sizeof(tDot11fAssocRequest));
+    if ( NULL == pFrm )
     {
+<<<<<<< HEAD
         limLog(pMac, LOGE, FL("Unable to PAL allocate memory in limSendAssocReqMgmtFrame") );
+=======
+        limLog(pMac, LOGE, FL("Unable to allocate memory in limSendAssocReqMgmtFrame") );
+>>>>>>> eee6ad8... prima 3.2.3.178 caf
         return;
     }
 
 
-    palZeroMemory( pMac->hHdd, ( tANI_U8* )pFrm, sizeof( tDot11fAssocRequest ) );
+    vos_mem_set( ( tANI_U8* )pFrm, sizeof( tDot11fAssocRequest ), 0 );
 
     caps = pMlmAssocReq->capabilityInfo;
     if ( PROP_CAPABILITY_GET( 11EQOS, psessionEntry->limCurrentBssPropCap ) )
@@ -2194,12 +2265,12 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
         limPostSmeMessage( pMac, LIM_MLM_ASSOC_CNF,
                 ( tANI_U32* ) &mlmAssocCnf);
 
-        palFreeMemory(pMac->hHdd, pFrm);
+        vos_mem_free(pFrm);
         return;
     }
 
     // Paranoia:
-    palZeroMemory( pMac->hHdd, pFrame, nBytes );
+    vos_mem_set( pFrame, nBytes, 0 );
 
     // Next, we fill out the buffer descriptor:
     nSirStatus = limPopulateMacHeader( pMac, pFrame, SIR_MAC_MGMT_FRAME,
@@ -2210,7 +2281,7 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
                     "tor for an Association Request (%d)."),
                 nSirStatus );
         palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( void* ) pFrame, ( void* ) pPacket );
-        palFreeMemory(pMac->hHdd, pFrm);
+        vos_mem_free(pFrm);
         return;
     }
 
@@ -2226,7 +2297,7 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
                 nStatus );
         palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
                 ( void* ) pFrame, ( void* ) pPacket );
-        palFreeMemory(pMac->hHdd, pFrm);
+        vos_mem_free(pFrm);
         return;
     }
     else if ( DOT11F_WARNED( nStatus ) )
@@ -2242,27 +2313,27 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
 
         if( psessionEntry->assocReq != NULL )
         {
-            palFreeMemory(pMac->hHdd, psessionEntry->assocReq);
+            vos_mem_free(psessionEntry->assocReq);
             psessionEntry->assocReq = NULL;
         }
 
     if( nAddIELen )
     {
-        palCopyMemory( pMac->hHdd, pFrame + sizeof(tSirMacMgmtHdr) + nPayload, 
-                pAddIE, 
-                nAddIELen );
+        vos_mem_copy( pFrame + sizeof(tSirMacMgmtHdr) + nPayload,
+                      pAddIE,
+                      nAddIELen );
         nPayload += nAddIELen;
     }
 
-    if( (palAllocateMemory(pMac->hHdd, (void**)&psessionEntry->assocReq,
-                           nPayload)) != eHAL_STATUS_SUCCESS)
+    psessionEntry->assocReq = vos_mem_malloc(nPayload);
+    if ( NULL == psessionEntry->assocReq )
     {
         PELOGE(limLog(pMac, LOGE, FL("Unable to allocate memory to store assoc request"));)
     }
     else
     {
         //Store the Assoc request. This is sent to csr/hdd in join cnf response. 
-        palCopyMemory(pMac->hHdd, psessionEntry->assocReq, pFrame + sizeof(tSirMacMgmtHdr), nPayload);
+        vos_mem_copy( psessionEntry->assocReq, pFrame + sizeof(tSirMacMgmtHdr), nPayload);
         psessionEntry->assocReqLen = nPayload;
     }
 
@@ -2289,13 +2360,13 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
         limLog( pMac, LOGE, FL("Failed to send Association Request (%X)!"),
                 halstatus );
         //Pkt will be freed up by the callback
-        palFreeMemory(pMac->hHdd, pFrm);
+        vos_mem_free(pFrm);
         return;
     }
 
     // Free up buffer allocated for mlmAssocReq
-    palFreeMemory( pMac->hHdd, ( tANI_U8* ) pMlmAssocReq );
-    palFreeMemory(pMac->hHdd, pFrm);
+    vos_mem_free(pMlmAssocReq);
+    vos_mem_free(pFrm);
     return;
 } // End limSendAssocReqMgmtFrame
 
@@ -2346,7 +2417,7 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
     limLog( pMac, LOG1, FL("limSendReassocReqWithFTIEsMgmtFrame received in "
                            "state (%d)."), psessionEntry->limMlmState);
 
-    palZeroMemory( pMac->hHdd, ( tANI_U8* )&frm, sizeof( frm ) );
+    vos_mem_set( ( tANI_U8* )&frm, sizeof( frm ), 0 );
 
     caps = pMlmReassocReq->capabilityInfo;
     if (PROP_CAPABILITY_GET(11EQOS, psessionEntry->limReassocBssPropCap))
@@ -2366,7 +2437,7 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
     frm.ListenInterval.interval = pMlmReassocReq->listenInterval;
 
     // Get the old bssid of the older AP.
-    palCopyMemory( pMac->hHdd, ( tANI_U8* )frm.CurrentAPAddress.mac,
+    vos_mem_copy( ( tANI_U8* )frm.CurrentAPAddress.mac,
             pMac->ft.ftPEContext.pFTPreAuthReq->currbssId, 6); 
 
     PopulateDot11fSSID2( pMac, &frm.SSID );
@@ -2590,7 +2661,7 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
     }
 
     // Paranoia:
-    palZeroMemory( pMac->hHdd, pFrame, nBytes + ft_ies_length);
+    vos_mem_set( pFrame, nBytes + ft_ies_length, 0);
 
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG || defined FEATURE_WLAN_CCX || defined(FEATURE_WLAN_LFR)
     limPrintMacAddr(pMac, psessionEntry->limReAssocbssId, LOG1);
@@ -2632,27 +2703,27 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
             nBytes, nPayload );)
     if( psessionEntry->assocReq != NULL )
     {
-        palFreeMemory(pMac->hHdd, psessionEntry->assocReq);
+        vos_mem_free(psessionEntry->assocReq);
         psessionEntry->assocReq = NULL;
     }
 
     if( nAddIELen )
     {
-        palCopyMemory( pMac->hHdd, pFrame + sizeof(tSirMacMgmtHdr) + nPayload, 
-                       pAddIE, 
-                       nAddIELen );
+        vos_mem_copy( pFrame + sizeof(tSirMacMgmtHdr) + nPayload,
+                      pAddIE,
+                      nAddIELen );
         nPayload += nAddIELen;
     }
 
-    if( (palAllocateMemory(pMac->hHdd, (void**)&psessionEntry->assocReq,
-                           nPayload)) != eHAL_STATUS_SUCCESS)
+    psessionEntry->assocReq = vos_mem_malloc(nPayload);
+    if ( NULL == psessionEntry->assocReq )
     {
         PELOGE(limLog(pMac, LOGE, FL("Unable to allocate memory to store assoc request"));)
     }
     else
     {
         //Store the Assoc request. This is sent to csr/hdd in join cnf response. 
-        palCopyMemory(pMac->hHdd, psessionEntry->assocReq, pFrame + sizeof(tSirMacMgmtHdr), nPayload);
+        vos_mem_copy( psessionEntry->assocReq, pFrame + sizeof(tSirMacMgmtHdr), nPayload);
         psessionEntry->assocReqLen = nPayload;
     }
 
@@ -2688,12 +2759,12 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
  
     if( NULL != psessionEntry->assocReq )
     {
-        palFreeMemory(pMac->hHdd, psessionEntry->assocReq);
+        vos_mem_free(psessionEntry->assocReq);
         psessionEntry->assocReq = NULL;
     }
 
-    if( (palAllocateMemory(pMac->hHdd, (void**)&psessionEntry->assocReq, 
-                           (ft_ies_length))) != eHAL_STATUS_SUCCESS )
+    psessionEntry->assocReq = vos_mem_malloc(ft_ies_length);
+    if ( NULL == psessionEntry->assocReq )
     {
         PELOGE(limLog(pMac, LOGE, FL("Unable to allocate memory to store assoc request"));)
         psessionEntry->assocReqLen = 0;
@@ -2701,8 +2772,8 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
     else
     {
        //Store the Assoc request. This is sent to csr/hdd in join cnf response. 
-       palCopyMemory(pMac->hHdd, psessionEntry->assocReq, pMac->ft.ftSmeContext.reassoc_ft_ies, 
-                     (ft_ies_length));
+       vos_mem_copy( psessionEntry->assocReq, pMac->ft.ftSmeContext.reassoc_ft_ies,
+                    (ft_ies_length));
        psessionEntry->assocReqLen = (ft_ies_length);
     }
 
@@ -2723,7 +2794,7 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
 
 end:
     // Free up buffer allocated for mlmAssocReq
-    palFreeMemory( pMac->hHdd, ( tANI_U8* ) pMlmReassocReq );
+    vos_mem_free( pMlmReassocReq );
     psessionEntry->pLimMlmReassocReq = NULL;
 
 }
@@ -2736,9 +2807,10 @@ void limSendRetryReassocReqFrame(tpAniSirGlobal     pMac,
     tLimMlmReassocReq       *pTmpMlmReassocReq = NULL;
     if(NULL == pTmpMlmReassocReq)
     {
-        if ( !HAL_STATUS_SUCCESS(palAllocateMemory(pMac->hHdd, (void **)&pTmpMlmReassocReq, sizeof(tLimMlmReassocReq))) ) goto end;
-        palZeroMemory(pMac->hHdd, pTmpMlmReassocReq, sizeof(tLimMlmReassocReq));
-        palCopyMemory( pMac->hHdd, pTmpMlmReassocReq, pMlmReassocReq, sizeof(tLimMlmReassocReq));
+        pTmpMlmReassocReq = vos_mem_malloc(sizeof(tLimMlmReassocReq));
+        if ( NULL == pTmpMlmReassocReq ) goto end;
+        vos_mem_set( pTmpMlmReassocReq, sizeof(tLimMlmReassocReq), 0);
+        vos_mem_copy( pTmpMlmReassocReq, pMlmReassocReq, sizeof(tLimMlmReassocReq));
     }
 
     // Prepare and send Reassociation request frame
@@ -2767,12 +2839,12 @@ end:
     // Free up buffer allocated for reassocReq
     if (pMlmReassocReq != NULL)
     {
-        palFreeMemory( pMac->hHdd, (tANI_U8 *) pMlmReassocReq);
+        vos_mem_free(pMlmReassocReq);
         pMlmReassocReq = NULL;
     }
     if (pTmpMlmReassocReq != NULL)
     {
-        palFreeMemory( pMac->hHdd, (tANI_U8 *) pTmpMlmReassocReq);
+        vos_mem_free(pTmpMlmReassocReq);
         pTmpMlmReassocReq = NULL;
     }
     mlmReassocCnf.resultCode = eSIR_SME_FT_REASSOC_FAILURE;
@@ -2819,7 +2891,7 @@ limSendReassocReqMgmtFrame(tpAniSirGlobal     pMac,
     nAddIELen = psessionEntry->pLimReAssocReq->addIEAssoc.length; 
     pAddIE = psessionEntry->pLimReAssocReq->addIEAssoc.addIEdata;
     
-    palZeroMemory( pMac->hHdd, ( tANI_U8* )&frm, sizeof( frm ) );
+    vos_mem_set( ( tANI_U8* )&frm, sizeof( frm ), 0 );
 
     caps = pMlmReassocReq->capabilityInfo;
     if (PROP_CAPABILITY_GET(11EQOS, psessionEntry->limReassocBssPropCap))
@@ -2838,8 +2910,8 @@ limSendReassocReqMgmtFrame(tpAniSirGlobal     pMac,
 
     frm.ListenInterval.interval = pMlmReassocReq->listenInterval;
 
-    palCopyMemory( pMac->hHdd, ( tANI_U8* )frm.CurrentAPAddress.mac,
-                   ( tANI_U8* )psessionEntry->bssId, 6 );
+    vos_mem_copy(( tANI_U8* )frm.CurrentAPAddress.mac,
+                 ( tANI_U8* )psessionEntry->bssId, 6 );
 
     PopulateDot11fSSID2( pMac, &frm.SSID );
     PopulateDot11fSuppRates( pMac, POPULATE_DOT11F_RATES_OPERATIONAL,
@@ -2990,7 +3062,7 @@ limSendReassocReqMgmtFrame(tpAniSirGlobal     pMac,
     }
 
     // Paranoia:
-    palZeroMemory( pMac->hHdd, pFrame, nBytes );
+    vos_mem_set( pFrame, nBytes, 0 );
 
     // Next, we fill out the buffer descriptor:
     nSirStatus = limPopulateMacHeader( pMac, pFrame, SIR_MAC_MGMT_FRAME,
@@ -3030,27 +3102,27 @@ limSendReassocReqMgmtFrame(tpAniSirGlobal     pMac,
 
     if( psessionEntry->assocReq != NULL )
     {
-        palFreeMemory(pMac->hHdd, psessionEntry->assocReq);
+        vos_mem_free(psessionEntry->assocReq);
         psessionEntry->assocReq = NULL;
     }
 
     if( nAddIELen )
     {
-        palCopyMemory( pMac->hHdd, pFrame + sizeof(tSirMacMgmtHdr) + nPayload, 
-                       pAddIE, 
-                       nAddIELen );
+        vos_mem_copy( pFrame + sizeof(tSirMacMgmtHdr) + nPayload,
+                      pAddIE,
+                      nAddIELen );
         nPayload += nAddIELen;
     }
 
-    if( (palAllocateMemory(pMac->hHdd, (void**)&psessionEntry->assocReq,
-                           nPayload)) != eHAL_STATUS_SUCCESS)
+    psessionEntry->assocReq = vos_mem_malloc(nPayload);
+    if ( NULL == psessionEntry->assocReq )
     {
         PELOGE(limLog(pMac, LOGE, FL("Unable to allocate memory to store assoc request"));)
     }
     else
     {
         //Store the Assoc request. This is sent to csr/hdd in join cnf response. 
-        palCopyMemory(pMac->hHdd, psessionEntry->assocReq, pFrame + sizeof(tSirMacMgmtHdr), nPayload);
+        vos_mem_copy(psessionEntry->assocReq, pFrame + sizeof(tSirMacMgmtHdr), nPayload);
         psessionEntry->assocReqLen = nPayload;
     }
 
@@ -3083,7 +3155,7 @@ limSendReassocReqMgmtFrame(tpAniSirGlobal     pMac,
 
 end:
     // Free up buffer allocated for mlmAssocReq
-    palFreeMemory( pMac->hHdd, ( tANI_U8* ) pMlmReassocReq );
+    vos_mem_free( pMlmReassocReq );
     psessionEntry->pLimMlmReassocReq = NULL;
 
 } // limSendReassocReqMgmtFrame
@@ -3274,9 +3346,9 @@ limSendAuthMgmtFrame(tpAniSirGlobal pMac,
     // Prepare BSSId
     if(  (psessionEntry->limSystemRole == eLIM_AP_ROLE)|| (psessionEntry->limSystemRole == eLIM_BT_AMP_AP_ROLE) )
     {
-        palCopyMemory( pMac->hHdd,(tANI_U8 *) pMacHdr->bssId,
-                       (tANI_U8 *) psessionEntry->bssId,
-                       sizeof( tSirMacAddr ));
+        vos_mem_copy( (tANI_U8 *) pMacHdr->bssId,
+                      (tANI_U8 *) psessionEntry->bssId,
+                      sizeof( tSirMacAddr ));
     }
 
     /// Prepare Authentication frame body
@@ -3284,7 +3356,7 @@ limSendAuthMgmtFrame(tpAniSirGlobal pMac,
 
     if (wepBit == LIM_WEP_IN_FC)
     {
-        palCopyMemory( pMac->hHdd, pBody, (tANI_U8 *) pAuthFrameBody, bodyLen);
+        vos_mem_copy(pBody, (tANI_U8 *) pAuthFrameBody, bodyLen);
 
         PELOG1(limLog(pMac, LOG1,
            FL("*** Sending Auth seq# 3 status %d (%d) to"),
@@ -3306,8 +3378,15 @@ limSendAuthMgmtFrame(tpAniSirGlobal pMac,
         *((tANI_U16 *)(pBody)) = sirSwapU16ifNeeded(pAuthFrameBody->authStatusCode);
         pBody   += sizeof(tANI_U16);
         bodyLen -= sizeof(tANI_U16);
+<<<<<<< HEAD
 
         palCopyMemory( pMac->hHdd, pBody, (tANI_U8 *) &pAuthFrameBody->type, bodyLen);
+=======
+        if ( bodyLen <= (sizeof (pAuthFrameBody->type) +
+                         sizeof (pAuthFrameBody->length) +
+                         sizeof (pAuthFrameBody->challengeText)))
+            vos_mem_copy(pBody, (tANI_U8 *) &pAuthFrameBody->type, bodyLen);
+>>>>>>> eee6ad8... prima 3.2.3.178 caf
 
 #if defined WLAN_FEATURE_VOWIFI_11R
         if ((pAuthFrameBody->authAlgoNumber == eSIR_FT_AUTH) && 
@@ -3428,12 +3507,12 @@ eHalStatus limSendDeauthCnf(tpAniSirGlobal pMac)
         /// Receive path cleanup with dummy packet
         limCleanupRxPath(pMac, pStaDs,psessionEntry);
         /// Free up buffer allocated for mlmDeauthReq
-        palFreeMemory( pMac->hHdd, (tANI_U8 *) pMlmDeauthReq);
+        vos_mem_free(pMlmDeauthReq);
         pMac->lim.limDisassocDeauthCnfReq.pMlmDeauthReq = NULL;
     }
     return eHAL_STATUS_SUCCESS;
 end:
-    palCopyMemory( pMac->hHdd, (tANI_U8 *) &mlmDeauthCnf.peerMacAddr,
+    vos_mem_copy( (tANI_U8 *) &mlmDeauthCnf.peerMacAddr,
             (tANI_U8 *) pMlmDeauthReq->peerMacAddr,
             sizeof(tSirMacAddr));
     mlmDeauthCnf.deauthTrigger = pMlmDeauthReq->deauthTrigger;
@@ -3442,7 +3521,7 @@ end:
 
     // Free up buffer allocated
     // for mlmDeauthReq
-    palFreeMemory( pMac->hHdd, (tANI_U8 *) pMlmDeauthReq);
+    vos_mem_free(pMlmDeauthReq);
 
     limPostSmeMessage(pMac,
             LIM_MLM_DEAUTH_CNF,
@@ -3531,7 +3610,7 @@ eHalStatus limSendDisassocCnf(tpAniSirGlobal pMac)
 #endif
 
         /// Free up buffer allocated for mlmDisassocReq
-        palFreeMemory( pMac->hHdd, (tANI_U8 *) pMlmDisassocReq);
+        vos_mem_free(pMlmDisassocReq);
         pMac->lim.limDisassocDeauthCnfReq.pMlmDisassocReq = NULL;
         return eHAL_STATUS_SUCCESS;
     }
@@ -3540,7 +3619,7 @@ eHalStatus limSendDisassocCnf(tpAniSirGlobal pMac)
         return eHAL_STATUS_SUCCESS;
     }
 end:
-    palCopyMemory( pMac->hHdd, (tANI_U8 *) &mlmDisassocCnf.peerMacAddr,
+    vos_mem_copy( (tANI_U8 *) &mlmDisassocCnf.peerMacAddr,
             (tANI_U8 *) pMlmDisassocReq->peerMacAddr,
             sizeof(tSirMacAddr));
     mlmDisassocCnf.aid = pMlmDisassocReq->aid;
@@ -3552,7 +3631,7 @@ end:
     if(pMlmDisassocReq != NULL)
     {
         /// Free up buffer allocated for mlmDisassocReq
-        palFreeMemory( pMac->hHdd, (tANI_U8 *) pMlmDisassocReq);
+        vos_mem_free(pMlmDisassocReq);
         pMac->lim.limDisassocDeauthCnfReq.pMlmDisassocReq = NULL;
     }
 
@@ -3608,7 +3687,7 @@ limSendDisassocMgmtFrame(tpAniSirGlobal pMac,
         return;
     }
     
-    palZeroMemory( pMac->hHdd, ( tANI_U8* )&frm, sizeof( frm ) );
+    vos_mem_set( ( tANI_U8* )&frm, sizeof( frm ), 0);
 
     frm.Reason.code = nReason;
 
@@ -3641,7 +3720,7 @@ limSendDisassocMgmtFrame(tpAniSirGlobal pMac,
     }
 
     // Paranoia:
-    palZeroMemory( pMac->hHdd, pFrame, nBytes );
+    vos_mem_set( pFrame, nBytes, 0 );
 
     // Next, we fill out the buffer descriptor:
     nSirStatus = limPopulateMacHeader( pMac, pFrame, SIR_MAC_MGMT_FRAME,
@@ -3661,6 +3740,13 @@ limSendDisassocMgmtFrame(tpAniSirGlobal pMac,
     // Prepare the BSSID
     sirCopyMacAddr(pMacHdr->bssId,psessionEntry->bssId);
     
+<<<<<<< HEAD
+=======
+#ifdef WLAN_FEATURE_11W
+    limSetProtectedBit(pMac, psessionEntry, peer, pMacHdr);
+#endif
+
+>>>>>>> eee6ad8... prima 3.2.3.178 caf
     nStatus = dot11fPackDisassociation( pMac, &frm, pFrame +
                                         sizeof(tSirMacMgmtHdr),
                                         nPayload, &nPayload );
@@ -3784,7 +3870,7 @@ limSendDeauthMgmtFrame(tpAniSirGlobal pMac,
         return;
     }
     
-    palZeroMemory( pMac->hHdd, ( tANI_U8* ) &frm, sizeof( frm ) );
+    vos_mem_set( ( tANI_U8* ) &frm, sizeof( frm ), 0 );
 
     frm.Reason.code = nReason;
 
@@ -3817,7 +3903,7 @@ limSendDeauthMgmtFrame(tpAniSirGlobal pMac,
     }
 
     // Paranoia:
-    palZeroMemory( pMac->hHdd, pFrame, nBytes );
+    vos_mem_set(  pFrame, nBytes, 0 );
 
     // Next, we fill out the buffer descriptor:
     nSirStatus = limPopulateMacHeader( pMac, pFrame, SIR_MAC_MGMT_FRAME,
@@ -3837,6 +3923,13 @@ limSendDeauthMgmtFrame(tpAniSirGlobal pMac,
     // Prepare the BSSID
     sirCopyMacAddr(pMacHdr->bssId,psessionEntry->bssId);
 
+<<<<<<< HEAD
+=======
+#ifdef WLAN_FEATURE_11W
+    limSetProtectedBit(pMac, psessionEntry, peer, pMacHdr);
+#endif
+
+>>>>>>> eee6ad8... prima 3.2.3.178 caf
     nStatus = dot11fPackDeAuth( pMac, &frm, pFrame +
                                 sizeof(tSirMacMgmtHdr),
                                 nPayload, &nPayload );
@@ -3981,7 +4074,7 @@ limSendMeasReportFrame(tpAniSirGlobal             pMac,
     void               *pPacket;
     eHalStatus          halstatus;
    
-    palZeroMemory( pMac->hHdd, ( tANI_U8* )&frm, sizeof( frm ) );
+    vos_mem_set( ( tANI_U8* )&frm, sizeof( frm ), 0 );
 
     frm.Category.category = SIR_MAC_ACTION_SPECTRUM_MGMT;
     frm.Action.action     = SIR_MAC_ACTION_MEASURE_REPORT_ID;
@@ -4040,7 +4133,7 @@ limSendMeasReportFrame(tpAniSirGlobal             pMac,
     }
 
     // Paranoia:
-    palZeroMemory( pMac->hHdd, pFrame, nBytes );
+    vos_mem_set( pFrame, nBytes, 0 );
 
     // Next, we fill out the buffer descriptor:
     nSirStatus = limPopulateMacHeader( pMac, pFrame, SIR_MAC_MGMT_FRAME,
@@ -4067,6 +4160,13 @@ limSendMeasReportFrame(tpAniSirGlobal             pMac,
         return eSIR_FAILURE;    // just allocated...
     }
 
+<<<<<<< HEAD
+=======
+#ifdef WLAN_FEATURE_11W
+    limSetProtectedBit(pMac, psessionEntry, peer, pMacHdr);
+#endif
+
+>>>>>>> eee6ad8... prima 3.2.3.178 caf
     nStatus = dot11fPackMeasurementReport( pMac, &frm, pFrame +
                                            sizeof(tSirMacMgmtHdr),
                                            nPayload, &nPayload );
@@ -4125,7 +4225,7 @@ limSendTpcRequestFrame(tpAniSirGlobal pMac,
     void               *pPacket;
     eHalStatus          halstatus;
    
-    palZeroMemory( pMac->hHdd, ( tANI_U8* )&frm, sizeof( frm ) );
+    vos_mem_set( ( tANI_U8* )&frm, sizeof( frm ), 0 );
 
     frm.Category.category  = SIR_MAC_ACTION_SPECTRUM_MGMT;
     frm.Action.action      = SIR_MAC_ACTION_TPC_REQUEST_ID;
@@ -4159,7 +4259,7 @@ limSendTpcRequestFrame(tpAniSirGlobal pMac,
     }
 
     // Paranoia:
-    palZeroMemory( pMac->hHdd, pFrame, nBytes );
+    vos_mem_set(pFrame, nBytes,0);
 
     // Next, we fill out the buffer descriptor:
     nSirStatus = limPopulateMacHeader( pMac, pFrame, SIR_MAC_MGMT_FRAME,
@@ -4186,6 +4286,13 @@ limSendTpcRequestFrame(tpAniSirGlobal pMac,
         return;                 // just allocated...
     }
 
+<<<<<<< HEAD
+=======
+#ifdef WLAN_FEATURE_11W
+    limSetProtectedBit(pMac, psessionEntry, peer, pMacHdr);
+#endif
+
+>>>>>>> eee6ad8... prima 3.2.3.178 caf
     nStatus = dot11fPackTPCRequest( pMac, &frm, pFrame +
                                     sizeof(tSirMacMgmtHdr),
                                     nPayload, &nPayload );
@@ -4245,7 +4352,7 @@ limSendTpcReportFrame(tpAniSirGlobal            pMac,
     void               *pPacket;
     eHalStatus          halstatus;
    
-    palZeroMemory( pMac->hHdd, ( tANI_U8* )&frm, sizeof( frm ) );
+    vos_mem_set( ( tANI_U8* )&frm, sizeof( frm ), 0 );
 
     frm.Category.category  = SIR_MAC_ACTION_SPECTRUM_MGMT;
     frm.Action.action      = SIR_MAC_ACTION_TPC_REPORT_ID;
@@ -4286,7 +4393,7 @@ limSendTpcReportFrame(tpAniSirGlobal            pMac,
     }
 
     // Paranoia:
-    palZeroMemory( pMac->hHdd, pFrame, nBytes );
+    vos_mem_set( pFrame, nBytes, 0 );
 
     // Next, we fill out the buffer descriptor:
     nSirStatus = limPopulateMacHeader( pMac, pFrame, SIR_MAC_MGMT_FRAME,
@@ -4313,6 +4420,13 @@ limSendTpcReportFrame(tpAniSirGlobal            pMac,
         return eSIR_FAILURE;    // just allocated...
     }
 
+<<<<<<< HEAD
+=======
+#ifdef WLAN_FEATURE_11W
+    limSetProtectedBit(pMac, psessionEntry, peer, pMacHdr);
+#endif
+
+>>>>>>> eee6ad8... prima 3.2.3.178 caf
     nStatus = dot11fPackTPCReport( pMac, &frm, pFrame +
                                    sizeof(tSirMacMgmtHdr),
                                    nPayload, &nPayload );
@@ -4386,7 +4500,7 @@ limSendChannelSwitchMgmtFrame(tpAniSirGlobal pMac,
     eHalStatus          halstatus;
     tANI_U8 txFlag = 0;
     
-    palZeroMemory( pMac->hHdd, ( tANI_U8* )&frm, sizeof( frm ) );
+    vos_mem_set( ( tANI_U8* )&frm, sizeof( frm ), 0 );
 
     frm.Category.category     = SIR_MAC_ACTION_SPECTRUM_MGMT;
     frm.Action.action         = SIR_MAC_ACTION_CHANNEL_SWITCH_ID;
@@ -4422,16 +4536,15 @@ limSendChannelSwitchMgmtFrame(tpAniSirGlobal pMac,
     }
 
     // Paranoia:
-    palZeroMemory( pMac->hHdd, pFrame, nBytes );
+    vos_mem_set( pFrame, nBytes, 0 );
 
     // Next, we fill out the buffer descriptor:
     nSirStatus = limPopulateMacHeader( pMac, pFrame, SIR_MAC_MGMT_FRAME,
                                 SIR_MAC_MGMT_ACTION, peer, psessionEntry->selfMacAddr);
     pMacHdr = ( tpSirMacMgmtHdr ) pFrame;
-    palCopyMemory( pMac->hHdd,
-                   (tANI_U8 *) pMacHdr->bssId,
-                   (tANI_U8 *) psessionEntry->bssId,
-                   sizeof( tSirMacAddr ));
+    vos_mem_copy( (tANI_U8 *) pMacHdr->bssId,
+                  (tANI_U8 *) psessionEntry->bssId,
+                  sizeof( tSirMacAddr ));
     if ( eSIR_SUCCESS != nSirStatus )
     {
         limLog( pMac, LOGE, FL("Failed to populate the buffer descrip"
@@ -4455,6 +4568,14 @@ limSendChannelSwitchMgmtFrame(tpAniSirGlobal pMac,
         return eSIR_FAILURE;    // just allocated...
     }
 #endif
+<<<<<<< HEAD
+=======
+
+#ifdef WLAN_FEATURE_11W
+    limSetProtectedBit(pMac, psessionEntry, peer, pMacHdr);
+#endif
+
+>>>>>>> eee6ad8... prima 3.2.3.178 caf
     nStatus = dot11fPackChannelSwitch( pMac, &frm, pFrame +
                                        sizeof(tSirMacMgmtHdr),
                                        nPayload, &nPayload );
@@ -4514,7 +4635,7 @@ limSendVHTOpmodeNotificationFrame(tpAniSirGlobal pMac,
     eHalStatus          halstatus;
     tANI_U8 txFlag = 0;
     
-    palZeroMemory( pMac->hHdd, ( tANI_U8* )&frm, sizeof( frm ) );
+    vos_mem_set( ( tANI_U8* )&frm, sizeof( frm ), 0 );
 
     frm.Category.category     = SIR_MAC_ACTION_VHT;
     frm.Action.action         = SIR_MAC_VHT_OPMODE_NOTIFICATION;
@@ -4549,7 +4670,7 @@ limSendVHTOpmodeNotificationFrame(tpAniSirGlobal pMac,
     }
 
     // Paranoia:
-    palZeroMemory( pMac->hHdd, pFrame, nBytes );
+    vos_mem_set( pFrame, nBytes, 0 );
 
 
     // Next, we fill out the buffer descriptor:
@@ -4560,10 +4681,9 @@ limSendVHTOpmodeNotificationFrame(tpAniSirGlobal pMac,
         nSirStatus = limPopulateMacHeader( pMac, pFrame, SIR_MAC_MGMT_FRAME,
                                            SIR_MAC_MGMT_ACTION, psessionEntry->bssId, psessionEntry->selfMacAddr);
     pMacHdr = ( tpSirMacMgmtHdr ) pFrame;
-    palCopyMemory( pMac->hHdd,
-                   (tANI_U8 *) pMacHdr->bssId,
-                   (tANI_U8 *) psessionEntry->bssId,
-                   sizeof( tSirMacAddr ));
+    vos_mem_copy( (tANI_U8 *) pMacHdr->bssId,
+                  (tANI_U8 *) psessionEntry->bssId,
+                  sizeof( tSirMacAddr ));
     if ( eSIR_SUCCESS != nSirStatus )
     {
         limLog( pMac, LOGE, FL("Failed to populate the buffer descrip"
@@ -4646,7 +4766,7 @@ limSendVHTChannelSwitchMgmtFrame(tpAniSirGlobal pMac,
     eHalStatus          halstatus;
     tANI_U8 txFlag = 0;
     
-    palZeroMemory( pMac->hHdd, ( tANI_U8* )&frm, sizeof( frm ) );
+    vos_mem_set( ( tANI_U8* )&frm, sizeof( frm ), 0 );
                 
 
     frm.Category.category     = SIR_MAC_ACTION_SPECTRUM_MGMT;
@@ -4688,16 +4808,15 @@ limSendVHTChannelSwitchMgmtFrame(tpAniSirGlobal pMac,
         return eSIR_FAILURE;
     }
    // Paranoia:
-    palZeroMemory( pMac->hHdd, pFrame, nBytes );
+    vos_mem_set( pFrame, nBytes, 0 );
 
     // Next, we fill out the buffer descriptor:
     nSirStatus = limPopulateMacHeader( pMac, pFrame, SIR_MAC_MGMT_FRAME,
                                 SIR_MAC_MGMT_ACTION, peer, psessionEntry->selfMacAddr);
     pMacHdr = ( tpSirMacMgmtHdr ) pFrame;
-    palCopyMemory( pMac->hHdd,
-                   (tANI_U8 *) pMacHdr->bssId,
-                   (tANI_U8 *) psessionEntry->bssId,
-                   sizeof( tSirMacAddr ));
+    vos_mem_copy( (tANI_U8 *) pMacHdr->bssId,
+                  (tANI_U8 *) psessionEntry->bssId,
+                  sizeof( tSirMacAddr ));
     if ( eSIR_SUCCESS != nSirStatus )
     {
         limLog( pMac, LOGE, FL("Failed to populate the buffer descrip"
@@ -4766,7 +4885,7 @@ limSendVHTChannelSwitchMgmtFrame(tpAniSirGlobal pMac,
  *         eSIR_FAILURE is some problem is encountered
  */
 tSirRetStatus limSendAddBAReq( tpAniSirGlobal pMac,
-    tpLimMlmAddBAReq pMlmAddBAReq ,tpPESession psessionEntry)
+    tpLimMlmAddBAReq pMlmAddBAReq, tpPESession psessionEntry)
 {
     tDot11fAddBAReq frmAddBAReq;
     tANI_U8 *pAddBAReqBuffer = NULL;
@@ -4782,7 +4901,7 @@ tSirRetStatus limSendAddBAReq( tpAniSirGlobal pMac,
         return eSIR_FAILURE;
     }
 
-    palZeroMemory( pMac->hHdd, (void *) &frmAddBAReq, sizeof( frmAddBAReq ));
+    vos_mem_set( (void *) &frmAddBAReq, sizeof( frmAddBAReq ), 0);
 
     // Category - 3 (BA)
     frmAddBAReq.Category.category = SIR_MAC_ACTION_BLKACK;
@@ -4852,7 +4971,7 @@ tSirRetStatus limSendAddBAReq( tpAniSirGlobal pMac,
         goto returnAfterError;
     }
 
-    palZeroMemory( pMac->hHdd, (void *) pAddBAReqBuffer, frameLen );
+    vos_mem_set( (void *) pAddBAReqBuffer, frameLen, 0 );
 
     // Copy necessary info to BD
     if( eSIR_SUCCESS !=
@@ -4884,6 +5003,13 @@ tSirRetStatus limSendAddBAReq( tpAniSirGlobal pMac,
     #endif//TO SUPPORT BT-AMP
     sirCopyMacAddr(pMacHdr->bssId,psessionEntry->bssId);
 
+<<<<<<< HEAD
+=======
+#ifdef WLAN_FEATURE_11W
+    limSetProtectedBit(pMac, psessionEntry, pMlmAddBAReq->peerMacAddr, pMacHdr);
+#endif
+
+>>>>>>> eee6ad8... prima 3.2.3.178 caf
     // Now, we're ready to "pack" the frames
     nStatus = dot11fPackAddBAReq( pMac,
       &frmAddBAReq,
@@ -4986,7 +5112,7 @@ tSirRetStatus limSendAddBARsp( tpAniSirGlobal pMac,
         return eSIR_FAILURE;
     }
 
-      palZeroMemory( pMac->hHdd, (void *) &frmAddBARsp, sizeof( frmAddBARsp ));
+      vos_mem_set( (void *) &frmAddBARsp, sizeof( frmAddBARsp ), 0);
 
       // Category - 3 (BA)
       frmAddBARsp.Category.category = SIR_MAC_ACTION_BLKACK;
@@ -5004,6 +5130,16 @@ tSirRetStatus limSendAddBARsp( tpAniSirGlobal pMac,
       frmAddBARsp.AddBAParameterSet.policy = pMlmAddBARsp->baPolicy;
       frmAddBARsp.AddBAParameterSet.bufferSize = pMlmAddBARsp->baBufferSize;
       frmAddBARsp.AddBAParameterSet.amsduSupported = psessionEntry->amsduSupportedInBA;
+
+      if(psessionEntry->isAmsduSupportInAMPDU)
+      {
+         frmAddBARsp.AddBAParameterSet.amsduSupported =
+                                          psessionEntry->amsduSupportedInBA;
+      }
+      else
+      {
+         frmAddBARsp.AddBAParameterSet.amsduSupported = 0;
+      }
 
       // BA timeout
       // 0 - indicates no BA timeout
@@ -5050,7 +5186,7 @@ tSirRetStatus limSendAddBARsp( tpAniSirGlobal pMac,
         goto returnAfterError;
       }
 
-      palZeroMemory( pMac->hHdd, (void *) pAddBARspBuffer, frameLen );
+      vos_mem_set( (void *) pAddBARspBuffer, frameLen, 0 );
 
       // Copy necessary info to BD
       if( eSIR_SUCCESS !=
@@ -5083,6 +5219,13 @@ tSirRetStatus limSendAddBARsp( tpAniSirGlobal pMac,
       #endif // TO SUPPORT BT-AMP
       sirCopyMacAddr(pMacHdr->bssId,psessionEntry->bssId);
 
+<<<<<<< HEAD
+=======
+#ifdef WLAN_FEATURE_11W
+      limSetProtectedBit(pMac, psessionEntry, pMlmAddBARsp->peerMacAddr, pMacHdr);
+#endif
+
+>>>>>>> eee6ad8... prima 3.2.3.178 caf
       // Now, we're ready to "pack" the frames
       nStatus = dot11fPackAddBARsp( pMac,
           &frmAddBARsp,
@@ -5189,7 +5332,7 @@ tSirRetStatus limSendDelBAInd( tpAniSirGlobal pMac,
         return eSIR_FAILURE;
     }
 
-    palZeroMemory( pMac->hHdd, (void *) &frmDelBAInd, sizeof( frmDelBAInd ));
+    vos_mem_set( (void *) &frmDelBAInd, sizeof( frmDelBAInd ), 0);
 
       // Category - 3 (BA)
       frmDelBAInd.Category.category = SIR_MAC_ACTION_BLKACK;
@@ -5245,7 +5388,7 @@ tSirRetStatus limSendDelBAInd( tpAniSirGlobal pMac,
         goto returnAfterError;
       }
 
-      palZeroMemory( pMac->hHdd, (void *) pDelBAIndBuffer, frameLen );
+      vos_mem_set( (void *) pDelBAIndBuffer, frameLen, 0 );
 
       // Copy necessary info to BD
       if( eSIR_SUCCESS !=
@@ -5277,6 +5420,13 @@ tSirRetStatus limSendDelBAInd( tpAniSirGlobal pMac,
       #endif //TO SUPPORT BT-AMP
       sirCopyMacAddr(pMacHdr->bssId,psessionEntry->bssId);
 
+<<<<<<< HEAD
+=======
+#ifdef WLAN_FEATURE_11W
+      limSetProtectedBit(pMac, psessionEntry, pMlmDelBAReq->peerMacAddr, pMacHdr);
+#endif
+
+>>>>>>> eee6ad8... prima 3.2.3.178 caf
       // Now, we're ready to "pack" the frames
       nStatus = dot11fPackDelBAInd( pMac,
           &frmDelBAInd,
@@ -5382,7 +5532,7 @@ limSendNeighborReportRequestFrame(tpAniSirGlobal        pMac,
       limLog( pMac, LOGE, FL("(psession == NULL) in Request to send Neighbor Report request action frame") );
       return eSIR_FAILURE;
    }
-   palZeroMemory( pMac->hHdd, ( tANI_U8* )&frm, sizeof( frm ) );
+   vos_mem_set( ( tANI_U8* )&frm, sizeof( frm ), 0 );
 
    frm.Category.category = SIR_MAC_ACTION_RRM;
    frm.Action.action     = SIR_MAC_RRM_NEIGHBOR_REQ;
@@ -5421,7 +5571,7 @@ limSendNeighborReportRequestFrame(tpAniSirGlobal        pMac,
    }
 
    // Paranoia:
-   palZeroMemory( pMac->hHdd, pFrame, nBytes );
+   vos_mem_set( pFrame, nBytes, 0 );
 
    // Copy necessary info to BD
    if( eSIR_SUCCESS !=
@@ -5437,6 +5587,13 @@ limSendNeighborReportRequestFrame(tpAniSirGlobal        pMac,
 
    sirCopyMacAddr( pMacHdr->bssId, psessionEntry->bssId );
 
+<<<<<<< HEAD
+=======
+#ifdef WLAN_FEATURE_11W
+   limSetProtectedBit(pMac, psessionEntry, peer, pMacHdr);
+#endif
+
+>>>>>>> eee6ad8... prima 3.2.3.178 caf
    // Now, we're ready to "pack" the frames
    nStatus = dot11fPackNeighborReportRequest( pMac,
          &frm,
@@ -5536,7 +5693,7 @@ limSendLinkReportActionFrame(tpAniSirGlobal        pMac,
       return eSIR_FAILURE;
    }
 
-   palZeroMemory( pMac->hHdd, ( tANI_U8* )&frm, sizeof( frm ) );
+   vos_mem_set( ( tANI_U8* )&frm, sizeof( frm ), 0 );
 
    frm.Category.category = SIR_MAC_ACTION_RRM;
    frm.Action.action     = SIR_MAC_RRM_LINK_MEASUREMENT_RPT;
@@ -5585,7 +5742,7 @@ limSendLinkReportActionFrame(tpAniSirGlobal        pMac,
    }
 
    // Paranoia:
-   palZeroMemory( pMac->hHdd, pFrame, nBytes );
+   vos_mem_set( pFrame, nBytes, 0 );
 
    // Copy necessary info to BD
    if( eSIR_SUCCESS !=
@@ -5601,6 +5758,13 @@ limSendLinkReportActionFrame(tpAniSirGlobal        pMac,
 
    sirCopyMacAddr( pMacHdr->bssId, psessionEntry->bssId );
 
+<<<<<<< HEAD
+=======
+#ifdef WLAN_FEATURE_11W
+   limSetProtectedBit(pMac, psessionEntry, peer, pMacHdr);
+#endif
+
+>>>>>>> eee6ad8... prima 3.2.3.178 caf
    // Now, we're ready to "pack" the frames
    nStatus = dot11fPackLinkMeasurementReport( pMac,
          &frm,
@@ -5712,7 +5876,7 @@ limSendRadioMeasureReportActionFrame(tpAniSirGlobal        pMac,
       vos_mem_free(frm);
       return eSIR_FAILURE;
    }
-   palZeroMemory( pMac->hHdd, ( tANI_U8* )frm, sizeof( *frm ) );
+   vos_mem_set( ( tANI_U8* )frm, sizeof( *frm ), 0 );
 
    frm->Category.category = SIR_MAC_ACTION_RRM;
    frm->Action.action     = SIR_MAC_RRM_RADIO_MEASURE_RPT;
@@ -5771,7 +5935,7 @@ limSendRadioMeasureReportActionFrame(tpAniSirGlobal        pMac,
    }
 
    // Paranoia:
-   palZeroMemory( pMac->hHdd, pFrame, nBytes );
+   vos_mem_set( pFrame, nBytes, 0 );
 
    // Copy necessary info to BD
    if( eSIR_SUCCESS !=
@@ -5787,6 +5951,13 @@ limSendRadioMeasureReportActionFrame(tpAniSirGlobal        pMac,
 
    sirCopyMacAddr( pMacHdr->bssId, psessionEntry->bssId );
 
+<<<<<<< HEAD
+=======
+#ifdef WLAN_FEATURE_11W
+   limSetProtectedBit(pMac, psessionEntry, peer, pMacHdr);
+#endif
+
+>>>>>>> eee6ad8... prima 3.2.3.178 caf
    // Now, we're ready to "pack" the frames
    nStatus = dot11fPackRadioMeasurementReport( pMac,
          frm,
@@ -5887,9 +6058,15 @@ tSirMacAddr peer,tpPESession psessionEntry)
    tANI_U8             txFlag = 0;
    //tANI_U16 nBytes
    
+<<<<<<< HEAD
    palZeroMemory( pMac->hHdd, ( tANI_U8* )&frm, sizeof( frm ) );
    frm.category  = SIR_MAC_ACTION_SA_QUERY;
    /*11w action  fiedl is :
+=======
+   vos_mem_set( ( tANI_U8* )&frm, sizeof( frm ), 0 );
+   frm.Category.category  = SIR_MAC_ACTION_SA_QUERY;
+   /*11w action  field is :
+>>>>>>> eee6ad8... prima 3.2.3.178 caf
     action: 0 --> SA query request action frame
     action: 1 --> SA query response action frame */ 
    frm.action    = 1;
@@ -5908,7 +6085,7 @@ tSirMacAddr peer,tpPESession psessionEntry)
    }
 
    // Paranoia:
-   palZeroMemory( pMac->hHdd, pFrame, nBytes );
+   vos_mem_set( pFrame, nBytes, 0 );
 
    // Next, we fill out the buffer descriptor:
    nSirStatus = limPopulateMacHeader( pMac, pFrame, SIR_MAC_MGMT_FRAME,
