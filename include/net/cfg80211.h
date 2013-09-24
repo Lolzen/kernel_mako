@@ -2132,6 +2132,7 @@ struct wiphy_wowlan_support {
  *
  * @max_acl_mac_addrs: Maximum number of MAC addresses that the device
  *	supports for ACL.
+ *
  * @country_ie_pref: country IE processing preferences specified
  *	by enum nl80211_country_ie_pref
  */
@@ -3530,6 +3531,12 @@ struct cfg80211_ft_event_params {
 void cfg80211_ft_event(struct net_device *netdev,
 		       struct cfg80211_ft_event_params *ft_event);
 
+/**
+ * cfg80211_ap_stopped - notify userspace that AP mode stopped
+ * @netdev: network device
+ * @gfp: context flags
+ */
+void cfg80211_ap_stopped(struct net_device *netdev, gfp_t gfp);
 
 /* Logging, debugging and troubleshooting/diagnostic helpers. */
 
