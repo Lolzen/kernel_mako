@@ -529,10 +529,6 @@ limCheckAndAddBssDescription(tpAniSirGlobal pMac,
         goto last;
     }
 #endif
-    /* Calling dfsChannelList which will convert DFS channel
-     * to Active channel for x secs if this channel is DFS channel */
-    limSetDFSChannelList(pMac, pBssDescr->bssDescription.channelIdSelf,
-                               &pMac->lim.dfschannelList);
     pBssDescr->bssDescription.fProbeRsp = fProbeRsp;
 
     pBssDescr->next = NULL;
