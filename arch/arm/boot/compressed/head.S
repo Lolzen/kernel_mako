@@ -9,12 +9,12 @@
  * published by the Free Software Foundation.
  */
 #include <linux/linkage.h>
-
 #ifdef CONFIG_KEXEC_HARDBOOT
   #include <asm/kexec.h>
   #include <asm/memory.h>
 #endif
 
+	.arch armv7a
 /*
  * Debugging stuff
  *
