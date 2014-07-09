@@ -7185,10 +7185,9 @@ static struct genl_ops nl80211_ops[] = {
 		.doit = nl80211_update_ft_ies,
 		.policy = nl80211_policy,
 		.flags = GENL_ADMIN_PERM,
-		.internal_flags = NL80211_FLAG_NEED_NETDEV_UP |
+		.internal_flags = NL80211_FLAG_NEED_NETDEV |
 				  NL80211_FLAG_NEED_RTNL,
 	},
-
 };
 
 static struct genl_multicast_group nl80211_mlme_mcgrp = {
