@@ -256,10 +256,15 @@ void build_ehash_secret(void)
 		get_random_bytes(&rnd, sizeof(rnd));
 	} while (rnd == 0);
 
+<<<<<<< HEAD
 	if (cmpxchg(&inet_ehash_secret, 0, rnd) == 0) {
 		get_random_bytes(&ipv6_hash_secret, sizeof(ipv6_hash_secret));
 		net_secret_init();
 	}
+=======
+	if (cmpxchg(&inet_ehash_secret, 0, rnd) == 0)
+		get_random_bytes(&ipv6_hash_secret, sizeof(ipv6_hash_secret));
+>>>>>>> 41418b8... Squashed update of kernel from 3.4.0 to 3.4.42
 }
 EXPORT_SYMBOL(build_ehash_secret);
 
