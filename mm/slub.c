@@ -1513,7 +1513,6 @@ static inline void *acquire_slab(struct kmem_cache *s,
 	do {
 		freelist = page->freelist;
 		counters = page->counters;
-		new.counters = counters;
 		if (mode) {
 			new.inuse = page->objects;
 			new.freelist = NULL;
@@ -1526,6 +1525,7 @@ static inline void *acquire_slab(struct kmem_cache *s,
 
 	} while (!__cmpxchg_double_slab(s, page,
 			freelist, counters,
+			NULL, new.counters,
 			new.freelist, new.counters,
 			"lock and freeze"));
 
