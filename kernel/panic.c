@@ -125,6 +125,8 @@ void panic(const char *fmt, ...)
 		dump_stack();
 #endif
 
+	kmsg_dump(KMSG_DUMP_PANIC);
+
 	/*
 	 * If we have crashed and we have a crash kernel loaded let it handle
 	 * everything else.
