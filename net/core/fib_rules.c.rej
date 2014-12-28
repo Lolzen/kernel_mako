@@ -1,0 +1,12 @@
+--- net/core/fib_rules.c
++++ net/core/fib_rules.c
+@@ -443,7 +443,8 @@
+ 		if (frh->action && (frh->action != rule->action))
+ 			continue;
+ 
+-		if (frh->table && (frh_get_table(frh, tb) != rule->table))
++		if (frh_get_table(frh, tb) &&
++		    (frh_get_table(frh, tb) != rule->table))
+ 			continue;
+ 
+ 		if (tb[FRA_PRIORITY] &&
