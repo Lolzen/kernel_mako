@@ -133,7 +133,6 @@ static inline void freezer_count(void)
 	try_to_freeze();
 }
 
-<<<<<<< HEAD
 /* DO NOT ADD ANY NEW CALLERS OF THIS FUNCTION */
 static inline void freezer_count_unsafe(void)
 {
@@ -142,8 +141,6 @@ static inline void freezer_count_unsafe(void)
 	try_to_freeze_unsafe();
 }
 
-=======
->>>>>>> 41418b8... Squashed update of kernel from 3.4.0 to 3.4.42
 /**
  * freezer_should_skip - whether to skip a task when determining frozen
  *			 state is reached

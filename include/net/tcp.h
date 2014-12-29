@@ -252,11 +252,7 @@ extern int sysctl_tcp_max_ssthresh;
 extern int sysctl_tcp_cookie_size;
 extern int sysctl_tcp_thin_linear_timeouts;
 extern int sysctl_tcp_thin_dupack;
-<<<<<<< HEAD
 extern int sysctl_tcp_default_init_rwnd;
-=======
-extern int sysctl_tcp_challenge_ack_limit;
->>>>>>> 41418b8... Squashed update of kernel from 3.4.0 to 3.4.42
 
 extern atomic_long_t tcp_memory_allocated;
 extern struct percpu_counter tcp_sockets_allocated;
