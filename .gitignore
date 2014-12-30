@@ -84,3 +84,7 @@ GTAGS
 *.orig
 *~
 \#*#
+
+*.nope
+*.rej
+patch-3.4.*
