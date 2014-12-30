@@ -565,6 +565,12 @@ asmlinkage void __init start_kernel(void)
 	/* Interrupts are enabled now so all GFP allocations are safe. */
 	gfp_allowed_mask = __GFP_BITS_MASK;
 
+	/* Interrupts are enabled now so all GFP allocations are safe. */
+	gfp_allowed_mask = __GFP_BITS_MASK;
+
+	/* Interrupts are enabled now so all GFP allocations are safe. */
+	gfp_allowed_mask = __GFP_BITS_MASK;
+
 	kmem_cache_init_late();
 
 	/*

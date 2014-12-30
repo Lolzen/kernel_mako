@@ -1407,6 +1407,7 @@ int usb_serial_register_drivers(struct usb_driver *udriver,
 		if (rc)
 			goto failed;
 	}
+	driver->usb_driver->supports_autosuspend = 1;
 
 	/* Now restore udriver's id_table and look for matches */
 	udriver->id_table = saved_id_table;

@@ -2065,6 +2065,12 @@ static void do_reset_b3_req(struct gigaset_capi_ctr *iif,
 static unsigned long ignored_msg_dump_time;
 
 /*
+ * dump unsupported/ignored messages at most twice per minute,
+ * some apps send those very frequently
+ */
+static unsigned long ignored_msg_dump_time;
+
+/*
  * unsupported CAPI message handler
  */
 static void do_unsupported(struct gigaset_capi_ctr *iif,

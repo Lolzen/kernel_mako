@@ -1531,6 +1531,9 @@ static ssize_t aio_setup_iocb(struct kiocb *kiocb, bool compat)
 		ret = security_file_permission(file, MAY_READ);
 		if (unlikely(ret))
 			break;
+		ret = security_file_permission(file, MAY_READ);
+		if (unlikely(ret))
+			break;
 		ret = aio_setup_vectored_rw(READ, kiocb, compat);
 		if (ret)
 			break;
@@ -1541,6 +1544,9 @@ static ssize_t aio_setup_iocb(struct kiocb *kiocb, bool compat)
 	case IOCB_CMD_PWRITEV:
 		ret = -EBADF;
 		if (unlikely(!(file->f_mode & FMODE_WRITE)))
+			break;
+		ret = security_file_permission(file, MAY_WRITE);
+		if (unlikely(ret))
 			break;
 		ret = security_file_permission(file, MAY_WRITE);
 		if (unlikely(ret))

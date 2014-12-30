@@ -96,6 +96,40 @@ static inline ssize_t buffer_size_add_clamp(struct persistent_ram_zone *prz,
 	return 0;
 }
 
+/* increase the size counter, retuning an error if it hits the max size */
+static inline ssize_t buffer_size_add_clamp(struct persistent_ram_zone *prz,
+	size_t a)
+{
+	size_t old;
+	size_t new;
+
+	do {
+		old = atomic_read(&prz->buffer->size);
+		new = old + a;
+		if (new > prz->buffer_size)
+			return -ENOMEM;
+	} while (atomic_cmpxchg(&prz->buffer->size, old, new) != old);
+
+	return 0;
+}
+
+/* increase the size counter, retuning an error if it hits the max size */
+static inline ssize_t buffer_size_add_clamp(struct persistent_ram_zone *prz,
+	size_t a)
+{
+	size_t old;
+	size_t new;
+
+	do {
+		old = atomic_read(&prz->buffer->size);
+		new = old + a;
+		if (new > prz->buffer_size)
+			return -ENOMEM;
+	} while (atomic_cmpxchg(&prz->buffer->size, old, new) != old);
+
+	return 0;
+}
+
 static void notrace persistent_ram_encode_rs8(struct persistent_ram_zone *prz,
 	uint8_t *data, size_t len, uint8_t *ecc)
 {

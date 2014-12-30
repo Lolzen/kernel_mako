@@ -77,6 +77,10 @@ static const struct hc_driver ehci_platform_hc_driver = {
 
 	.update_device		= ehci_update_device,
 
+	.update_device		= ehci_update_device,
+
+	.update_device		= ehci_update_device,
+
 	.clear_tt_buffer_complete = ehci_clear_tt_buffer_complete,
 };
 
