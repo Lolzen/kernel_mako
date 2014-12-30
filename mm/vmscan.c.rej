@@ -1,0 +1,11 @@
+--- mm/vmscan.c
++++ mm/vmscan.c
+@@ -722,7 +722,7 @@
+ 		return PAGEREF_RECLAIM;
+ 
+ 	if (referenced_ptes) {
+-		if (PageAnon(page))
++		if (PageSwapBacked(page))
+ 			return PAGEREF_ACTIVATE;
+ 		/*
+ 		 * All mapped pages start out with page table

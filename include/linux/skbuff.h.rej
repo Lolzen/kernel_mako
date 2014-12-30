@@ -1,0 +1,11 @@
+--- include/linux/skbuff.h
++++ include/linux/skbuff.h
+@@ -1881,8 +1881,6 @@
+ {
+ 	int delta = 0;
+ 
+-	if (headroom < NET_SKB_PAD)
+-		headroom = NET_SKB_PAD;
+ 	if (headroom > skb_headroom(skb))
+ 		delta = headroom - skb_headroom(skb);
+ 
