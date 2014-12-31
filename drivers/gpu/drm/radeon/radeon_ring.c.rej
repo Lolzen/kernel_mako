@@ -1,0 +1,12 @@
+--- drivers/gpu/drm/radeon/radeon_ring.c
++++ drivers/gpu/drm/radeon/radeon_ring.c
+@@ -311,6 +311,9 @@
+ {
+ 	int r;
+ 
++	/* make sure we aren't trying to allocate more space than there is on the ring */
++	if (ndw > (ring->ring_size / 4))
++		return -ENOMEM;
+ 	/* Align requested size with padding so unlock_commit can
+ 	 * pad safely */
+ 	ndw = (ndw + ring->align_mask) & ~ring->align_mask;

@@ -1,0 +1,12 @@
+--- crypto/algif_skcipher.c
++++ crypto/algif_skcipher.c
+@@ -378,6 +378,9 @@
+ 	struct skcipher_sg_list *sgl;
+ 	int err = -EINVAL;
+ 
++	if (flags & MSG_SENDPAGE_NOTLAST)
++		flags |= MSG_MORE;
++
+ 	lock_sock(sk);
+ 	if (!ctx->more && ctx->used)
+ 		goto unlock;

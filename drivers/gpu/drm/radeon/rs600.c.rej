@@ -1,0 +1,38 @@
+--- drivers/gpu/drm/radeon/rs600.c
++++ drivers/gpu/drm/radeon/rs600.c
+@@ -539,8 +539,10 @@
+ 		return -EINVAL;
+ 	}
+ 	addr = addr & 0xFFFFFFFFFFFFF000ULL;
+-	addr |= R600_PTE_VALID | R600_PTE_SYSTEM | R600_PTE_SNOOPED;
+-	addr |= R600_PTE_READABLE | R600_PTE_WRITEABLE;
++	if (addr != rdev->dummy_page.addr)
++		addr |= R600_PTE_VALID | R600_PTE_READABLE |
++			R600_PTE_WRITEABLE;
++	addr |= R600_PTE_SYSTEM | R600_PTE_SNOOPED;
+ 	writeq(addr, ptr + (i * 8));
+ 	return 0;
+ }
+@@ -864,6 +866,12 @@
+ 	}
+ 
+ 	/* Enable IRQ */
++	if (!rdev->irq.installed) {
++		r = radeon_irq_kms_init(rdev);
++		if (r)
++			return r;
++	}
++
+ 	rs600_irq_set(rdev);
+ 	rdev->config.r300.hdp_cntl = RREG32(RADEON_HOST_PATH_CNTL);
+ 	/* 1M ring buffer */
+@@ -994,9 +1002,6 @@
+ 	r = radeon_fence_driver_init(rdev);
+ 	if (r)
+ 		return r;
+-	r = radeon_irq_kms_init(rdev);
+-	if (r)
+-		return r;
+ 	/* Memory manager */
+ 	r = radeon_bo_init(rdev);
+ 	if (r)

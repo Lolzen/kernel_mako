@@ -1,0 +1,18 @@
+--- arch/powerpc/kvm/44x_emulate.c
++++ arch/powerpc/kvm/44x_emulate.c
+@@ -79,6 +79,7 @@
+ 				run->dcr.dcrn = dcrn;
+ 				run->dcr.data =  0;
+ 				run->dcr.is_write = 0;
++				vcpu->arch.dcr_is_write = 0;
+ 				vcpu->arch.io_gpr = rt;
+ 				vcpu->arch.dcr_needed = 1;
+ 				kvmppc_account_exit(vcpu, DCR_EXITS);
+@@ -100,6 +101,7 @@
+ 				run->dcr.dcrn = dcrn;
+ 				run->dcr.data = kvmppc_get_gpr(vcpu, rs);
+ 				run->dcr.is_write = 1;
++				vcpu->arch.dcr_is_write = 1;
+ 				vcpu->arch.dcr_needed = 1;
+ 				kvmppc_account_exit(vcpu, DCR_EXITS);
+ 				emulated = EMULATE_DO_DCR;

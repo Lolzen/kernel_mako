@@ -1,0 +1,34 @@
+--- drivers/idle/intel_idle.c
++++ drivers/idle/intel_idle.c
+@@ -398,6 +434,8 @@
+ 	ICPU(0x2f, idle_cpu_nehalem),
+ 	ICPU(0x2a, idle_cpu_snb),
+ 	ICPU(0x2d, idle_cpu_snb),
++	ICPU(0x3a, idle_cpu_ivb),
++	ICPU(0x3e, idle_cpu_ivb),
+ 	{}
+ };
+ MODULE_DEVICE_TABLE(x86cpu, intel_idle_ids);
+@@ -441,10 +479,8 @@
+ 
+ 	if (boot_cpu_has(X86_FEATURE_ARAT))	/* Always Reliable APIC Timer */
+ 		lapic_timer_reliable_states = LAPIC_TIMER_ALWAYS_RELIABLE;
+-	else {
++	else
+ 		on_each_cpu(__setup_broadcast_timer, (void *)true, 1);
+-		register_cpu_notifier(&setup_broadcast_notifier);
+-	}
+ 
+ 	pr_debug(PREFIX "v" INTEL_IDLE_VERSION
+ 		" model 0x%X\n", boot_cpu_data.x86_model);
+@@ -592,8 +628,9 @@
+ 	intel_idle_cpuidle_driver_init();
+ 	retval = cpuidle_register_driver(&intel_idle_driver);
+ 	if (retval) {
++		struct cpuidle_driver *drv = cpuidle_get_driver();
+ 		printk(KERN_DEBUG PREFIX "intel_idle yielding to %s",
+-			cpuidle_get_driver()->name);
++			drv ? drv->name : "none");
+ 		return retval;
+ 	}
+ 

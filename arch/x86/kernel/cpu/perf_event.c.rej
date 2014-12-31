@@ -1,0 +1,12 @@
+--- arch/x86/kernel/cpu/perf_event.c
++++ arch/x86/kernel/cpu/perf_event.c
+@@ -1165,6 +1165,9 @@
+ 	for (i = 0; i < cpuc->n_events; i++) {
+ 		if (event == cpuc->event_list[i]) {
+ 
++			if (i >= cpuc->n_events - cpuc->n_added)
++				--cpuc->n_added;
++
+ 			if (x86_pmu.put_event_constraints)
+ 				x86_pmu.put_event_constraints(cpuc, event);
+ 

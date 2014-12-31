@@ -1,0 +1,10 @@
+--- block/partition-generic.c
++++ block/partition-generic.c
+@@ -250,7 +251,6 @@
+ 	if (!part)
+ 		return;
+ 
+-	blk_free_devt(part_devt(part));
+ 	rcu_assign_pointer(ptbl->part[partno], NULL);
+ 	rcu_assign_pointer(ptbl->last_lookup, NULL);
+ 	kobject_put(part->holder_dir);

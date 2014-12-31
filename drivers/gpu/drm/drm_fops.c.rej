@@ -1,0 +1,15 @@
+--- drivers/gpu/drm/drm_fops.c
++++ drivers/gpu/drm/drm_fops.c
+@@ -139,8 +139,11 @@
+ 	retcode = drm_open_helper(inode, filp, dev);
+ 	if (!retcode) {
+ 		atomic_inc(&dev->counts[_DRM_STAT_OPENS]);
+-		if (!dev->open_count++)
++		if (!dev->open_count++) {
+ 			retcode = drm_setup(dev);
++			if (retcode)
++				dev->open_count--;
++		}
+ 	}
+ 	if (!retcode) {
+ 		mutex_lock(&dev->struct_mutex);

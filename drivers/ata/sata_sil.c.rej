@@ -1,0 +1,10 @@
+--- drivers/ata/sata_sil.c
++++ drivers/ata/sata_sil.c
+@@ -157,6 +157,7 @@
+ 	{ "ST380011ASL",	SIL_QUIRK_MOD15WRITE },
+ 	{ "ST3120022ASL",	SIL_QUIRK_MOD15WRITE },
+ 	{ "ST3160021ASL",	SIL_QUIRK_MOD15WRITE },
++	{ "TOSHIBA MK2561GSYN",	SIL_QUIRK_MOD15WRITE },
+ 	{ "Maxtor 4D060H3",	SIL_QUIRK_UDMA5MAX },
+ 	{ }
+ };

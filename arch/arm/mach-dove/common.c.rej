@@ -1,0 +1,11 @@
+--- arch/arm/mach-dove/common.c
++++ arch/arm/mach-dove/common.c
+@@ -90,7 +90,7 @@
+ {
+ 	orion_ge00_init(eth_data,
+ 			DOVE_GE00_PHYS_BASE, IRQ_DOVE_GE00_SUM,
+-			0, get_tclk());
++			0, get_tclk(), 1600);
+ }
+ 
+ /*****************************************************************************

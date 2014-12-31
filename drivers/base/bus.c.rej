@@ -1,0 +1,20 @@
+--- drivers/base/bus.c
++++ drivers/base/bus.c
+@@ -294,7 +294,7 @@
+ 	struct device *dev;
+ 	int error = 0;
+ 
+-	if (!bus)
++	if (!bus || !bus->p)
+ 		return -EINVAL;
+ 
+ 	klist_iter_init_node(&bus->p->klist_devices, &i,
+@@ -328,7 +328,7 @@
+ 	struct klist_iter i;
+ 	struct device *dev;
+ 
+-	if (!bus)
++	if (!bus || !bus->p)
+ 		return NULL;
+ 
+ 	klist_iter_init_node(&bus->p->klist_devices, &i,
