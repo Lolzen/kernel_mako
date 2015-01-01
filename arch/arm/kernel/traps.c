@@ -39,13 +39,7 @@
 
 #include <trace/events/exception.h>
 
-static const char *handler[]= {
-	"prefetch abort",
-	"data abort",
-	"address exception",
-	"interrupt",
-	"undefined instruction",
-};
+static const char *handler[]= { "prefetch abort", "data abort", "address exception", "interrupt" };
 
 #ifdef CONFIG_LGE_CRASH_HANDLER
 static int first_call_chain = 0;
