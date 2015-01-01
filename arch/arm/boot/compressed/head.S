@@ -14,7 +14,7 @@
   #include <asm/memory.h>
 #endif
 
-	.arch	armv7-a
+	.arch armv7a
 /*
  * Debugging stuff
  *
