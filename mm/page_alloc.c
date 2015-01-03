@@ -4426,13 +4426,7 @@ static inline void setup_usemap(struct pglist_data *pgdat, struct zone *zone,
 
 #ifdef CONFIG_HUGETLB_PAGE_SIZE_VARIABLE
 
-<<<<<<< HEAD
 /* Return a sensible default order for the pageblock size. */
-static inline int pageblock_default_order(void)
-=======
-/* Initialise the number of pages represented by NR_PAGEBLOCK_BITS */
-void __init set_pageblock_order(void)
->>>>>>> 46d9f40... Linux 3.4.81
 {
 	if (HPAGE_SHIFT > PAGE_SHIFT)
 		return HUGETLB_PAGE_ORDER;
@@ -4441,7 +4435,7 @@ void __init set_pageblock_order(void)
 }
 
 /* Initialise the number of pages represented by NR_PAGEBLOCK_BITS */
-static inline void __init set_pageblock_order(unsigned int order)
+void __init set_pageblock_order(unsigned int order)
 {
 	/* Check that pageblock_nr_pages has not already been setup */
 	if (pageblock_order)
@@ -4461,13 +4455,8 @@ static inline void __init set_pageblock_order(unsigned int order)
  * at compile-time. See include/linux/pageblock-flags.h for the values of
  * pageblock_order based on the kernel config
  */
-<<<<<<< HEAD
-static inline int pageblock_default_order(unsigned int order)
-=======
 void __init set_pageblock_order(void)
->>>>>>> 46d9f40... Linux 3.4.81
 {
-	return MAX_ORDER-1;
 }
 #define set_pageblock_order(x)	do {} while (0)
 
