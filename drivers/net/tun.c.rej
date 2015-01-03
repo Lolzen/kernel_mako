@@ -1,0 +1,73 @@
+--- drivers/net/tun.c
++++ drivers/net/tun.c
+@@ -185,7 +185,6 @@
+ 	netif_tx_lock_bh(tun->dev);
+ 	netif_carrier_off(tun->dev);
+ 	tun->tfile = NULL;
+-	tun->socket.file = NULL;
+ 	netif_tx_unlock_bh(tun->dev);
+ 
+ 	/* Drop read queue */
+@@ -358,6 +357,8 @@
+ {
+ 	struct tun_struct *tun = netdev_priv(dev);
+ 
++	BUG_ON(!test_bit(SOCK_EXTERNALLY_ALLOCATED, &tun->socket.flags));
++
+ 	sk_release_kernel(tun->socket.sk);
+ }
+ 
+@@ -416,6 +417,8 @@
+ 	 * for indefinite time. */
+ 	skb_orphan(skb);
+ 
++	nf_reset(skb);
++
+ 	/* Enqueue packet */
+ 	skb_queue_tail(&tun->socket.sk->sk_receive_queue, skb);
+ 
+@@ -612,8 +615,9 @@
+ 	int offset = 0;
+ 
+ 	if (!(tun->flags & TUN_NO_PI)) {
+-		if ((len -= sizeof(pi)) > count)
++		if (len < sizeof(pi))
+ 			return -EINVAL;
++		len -= sizeof(pi);
+ 
+ 		if (memcpy_fromiovecend((void *)&pi, iv, 0, sizeof(pi)))
+ 			return -EFAULT;
+@@ -621,8 +625,9 @@
+ 	}
+ 
+ 	if (tun->flags & TUN_VNET_HDR) {
+-		if ((len -= tun->vnet_hdr_sz) > count)
++		if (len < tun->vnet_hdr_sz)
+ 			return -EINVAL;
++		len -= tun->vnet_hdr_sz;
+ 
+ 		if (memcpy_fromiovecend((void *)&gso, iv, offset, sizeof(gso)))
+ 			return -EFAULT;
+@@ -1115,6 +1120,7 @@
+ 		tun->flags = flags;
+ 		tun->txflt.count = 0;
+ 		tun->vnet_hdr_sz = sizeof(struct virtio_net_hdr);
++		set_bit(SOCK_EXTERNALLY_ALLOCATED, &tun->socket.flags);
+ 
+ 		err = -ENOMEM;
+ 		sk = sk_alloc(&init_net, AF_UNSPEC, GFP_KERNEL, &tun_proto);
+@@ -1252,10 +1258,12 @@
+ 	int vnet_hdr_sz;
+ 	int ret;
+ 
+-	if (cmd == TUNSETIFF || _IOC_TYPE(cmd) == 0x89)
++	if (cmd == TUNSETIFF || _IOC_TYPE(cmd) == 0x89) {
+ 		if (copy_from_user(&ifr, argp, ifreq_len))
+ 			return -EFAULT;
+-
++	} else {
++		memset(&ifr, 0, sizeof(ifr));
++	}
+ 	if (cmd == TUNGETFEATURES) {
+ 		/* Currently this just means: "what IFF flags are valid?".
+ 		 * This is needed because we never checked for invalid flags on

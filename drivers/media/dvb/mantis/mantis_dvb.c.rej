@@ -1,0 +1,15 @@
+--- drivers/media/dvb/mantis/mantis_dvb.c
++++ drivers/media/dvb/mantis/mantis_dvb.c
+@@ -248,8 +248,10 @@
+ err5:
+ 	tasklet_kill(&mantis->tasklet);
+ 	dvb_net_release(&mantis->dvbnet);
+-	dvb_unregister_frontend(mantis->fe);
+-	dvb_frontend_detach(mantis->fe);
++	if (mantis->fe) {
++		dvb_unregister_frontend(mantis->fe);
++		dvb_frontend_detach(mantis->fe);
++	}
+ err4:
+ 	mantis->demux.dmx.remove_frontend(&mantis->demux.dmx, &mantis->fe_mem);
+ 

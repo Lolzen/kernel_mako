@@ -1,0 +1,10 @@
+--- include/linux/mmu_notifier.h
++++ include/linux/mmu_notifier.h
+@@ -4,6 +4,7 @@
+ #include <linux/list.h>
+ #include <linux/spinlock.h>
+ #include <linux/mm_types.h>
++#include <linux/srcu.h>
+ 
+ struct mmu_notifier;
+ struct mmu_notifier_ops;

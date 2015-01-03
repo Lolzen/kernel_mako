@@ -1,0 +1,20 @@
+--- drivers/block/nbd.c
++++ drivers/block/nbd.c
+@@ -602,6 +610,7 @@
+ 		nbd->file = NULL;
+ 		nbd_clear_que(nbd);
+ 		BUG_ON(!list_empty(&nbd->queue_head));
++		BUG_ON(!list_empty(&nbd->waiting_queue));
+ 		if (file)
+ 			fput(file);
+ 		return 0;
+@@ -665,7 +674,8 @@
+ 
+ 		mutex_unlock(&nbd->tx_lock);
+ 
+-		thread = kthread_create(nbd_thread, nbd, nbd->disk->disk_name);
++		thread = kthread_create(nbd_thread, nbd, "%s",
++					nbd->disk->disk_name);
+ 		if (IS_ERR(thread)) {
+ 			mutex_lock(&nbd->tx_lock);
+ 			return PTR_ERR(thread);

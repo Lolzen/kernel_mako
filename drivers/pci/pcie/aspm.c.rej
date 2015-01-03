@@ -1,0 +1,12 @@
+--- drivers/pci/pcie/aspm.c
++++ drivers/pci/pcie/aspm.c
+@@ -798,6 +798,9 @@
+ {
+ 	struct pci_dev *child;
+ 
++	if (aspm_force)
++		return;
++
+ 	/*
+ 	 * Clear any ASPM setup that the firmware has carried out on this bus
+ 	 */

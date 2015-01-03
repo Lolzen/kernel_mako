@@ -1,0 +1,34 @@
+--- drivers/net/wireless/rt2x00/rt2400pci.c
++++ drivers/net/wireless/rt2x00/rt2400pci.c
+@@ -1253,7 +1253,7 @@
+ 	 */
+ 	rxdesc->timestamp = ((u64)rx_high << 32) | rx_low;
+ 	rxdesc->signal = rt2x00_get_field32(word2, RXD_W2_SIGNAL) & ~0x08;
+-	rxdesc->rssi = rt2x00_get_field32(word2, RXD_W3_RSSI) -
++	rxdesc->rssi = rt2x00_get_field32(word3, RXD_W3_RSSI) -
+ 	    entry->queue->rt2x00dev->rssi_offset;
+ 	rxdesc->size = rt2x00_get_field32(word0, RXD_W0_DATABYTE_COUNT);
+ 
+@@ -1611,6 +1611,7 @@
+ static int rt2400pci_probe_hw(struct rt2x00_dev *rt2x00dev)
+ {
+ 	int retval;
++	u32 reg;
+ 
+ 	/*
+ 	 * Allocate eeprom data.
+@@ -1624,6 +1625,14 @@
+ 		return retval;
+ 
+ 	/*
++	 * Enable rfkill polling by setting GPIO direction of the
++	 * rfkill switch GPIO pin correctly.
++	 */
++	rt2x00pci_register_read(rt2x00dev, GPIOCSR, &reg);
++	rt2x00_set_field32(&reg, GPIOCSR_BIT8, 1);
++	rt2x00pci_register_write(rt2x00dev, GPIOCSR, reg);
++
++	/*
+ 	 * Initialize hw specifications.
+ 	 */
+ 	retval = rt2400pci_probe_hw_mode(rt2x00dev);

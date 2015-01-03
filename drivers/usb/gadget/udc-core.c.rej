@@ -1,0 +1,11 @@
+--- drivers/usb/gadget/udc-core.c
++++ drivers/usb/gadget/udc-core.c
+@@ -265,7 +265,7 @@
+ 		udc->driver->disconnect(udc->gadget);
+ 		usb_gadget_disconnect(udc->gadget);
+ 		udc->driver->unbind(udc->gadget);
+-		usb_gadget_udc_stop(udc->gadget, udc->driver);
++		usb_gadget_udc_stop(udc->gadget, NULL);
+ 	} else {
+ 		usb_gadget_stop(udc->gadget, udc->driver);
+ 	}

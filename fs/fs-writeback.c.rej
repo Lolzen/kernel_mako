@@ -1,0 +1,10 @@
+--- fs/fs-writeback.c
++++ fs/fs-writeback.c
+@@ -68,6 +68,7 @@
+ {
+ 	return test_bit(BDI_writeback_running, &bdi->state);
+ }
++EXPORT_SYMBOL(writeback_in_progress);
+ 
+ static inline struct backing_dev_info *inode_to_bdi(struct inode *inode)
+ {

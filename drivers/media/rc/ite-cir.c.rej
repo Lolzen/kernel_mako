@@ -1,0 +1,18 @@
+--- drivers/media/rc/ite-cir.c
++++ drivers/media/rc/ite-cir.c
+@@ -1473,6 +1473,7 @@
+ 	rdev = rc_allocate_device();
+ 	if (!rdev)
+ 		goto failure;
++	itdev->rdev = rdev;
+ 
+ 	ret = -ENODEV;
+ 
+@@ -1604,7 +1605,6 @@
+ 	if (ret)
+ 		goto failure;
+ 
+-	itdev->rdev = rdev;
+ 	ite_pr(KERN_NOTICE, "driver has been successfully loaded\n");
+ 
+ 	return 0;

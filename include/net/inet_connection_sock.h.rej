@@ -1,0 +1,10 @@
+--- include/net/inet_connection_sock.h
++++ include/net/inet_connection_sock.h
+@@ -317,6 +317,7 @@
+ 				       const unsigned long max_rto);
+ 
+ extern void inet_csk_destroy_sock(struct sock *sk);
++extern void inet_csk_prepare_forced_close(struct sock *sk);
+ 
+ /*
+  * LISTEN is a special case for poll..

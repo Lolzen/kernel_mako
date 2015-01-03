@@ -1,0 +1,11 @@
+--- drivers/tty/serial/8250/8250_dw.c
++++ drivers/tty/serial/8250/8250_dw.c
+@@ -79,7 +79,7 @@
+ 	} else if ((iir & UART_IIR_BUSY) == UART_IIR_BUSY) {
+ 		/* Clear the USR and write the LCR again. */
+ 		(void)p->serial_in(p, UART_USR);
+-		p->serial_out(p, d->last_lcr, UART_LCR);
++		p->serial_out(p, UART_LCR, d->last_lcr);
+ 
+ 		return 1;
+ 	}

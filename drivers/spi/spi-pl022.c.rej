@@ -1,0 +1,14 @@
+--- drivers/spi/spi-pl022.c
++++ drivers/spi/spi-pl022.c
+@@ -489,6 +489,11 @@
+ 	pl022->cur_transfer = NULL;
+ 	pl022->cur_chip = NULL;
+ 	spi_finalize_current_message(pl022->master);
++
++	/* disable the SPI/SSP operation */
++	writew((readw(SSP_CR1(pl022->virtbase)) &
++		(~SSP_CR1_MASK_SSE)), SSP_CR1(pl022->virtbase));
++
+ }
+ 
+ /**

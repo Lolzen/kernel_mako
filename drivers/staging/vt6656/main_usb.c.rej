@@ -1,0 +1,46 @@
+--- drivers/staging/vt6656/main_usb.c
++++ drivers/staging/vt6656/main_usb.c
+@@ -222,7 +222,7 @@
+ // Static vars definitions
+ //
+ 
+-static struct usb_device_id vt6656_table[] __devinitdata = {
++static struct usb_device_id vt6656_table[] = {
+ 	{USB_DEVICE(VNT_USB_VENDOR_ID, VNT_USB_PRODUCT_ID)},
+ 	{}
+ };
+@@ -718,8 +718,6 @@
+ 	if (device->flags & DEVICE_FLAGS_OPENED)
+ 		device_close(device->dev);
+ 
+-	usb_put_dev(interface_to_usbdev(intf));
+-
+ 	return 0;
+ }
+ 
+@@ -730,8 +728,6 @@
+ 	if (!device || !device->dev)
+ 		return -ENODEV;
+ 
+-	usb_get_dev(interface_to_usbdev(intf));
+-
+ 	if (!(device->flags & DEVICE_FLAGS_OPENED))
+ 		device_open(device->dev);
+ 
+@@ -1224,6 +1220,8 @@
+     memset(pMgmt->abyCurrBSSID, 0, 6);
+     pMgmt->eCurrState = WMAC_STATE_IDLE;
+ 
++	pDevice->flags &= ~DEVICE_FLAGS_OPENED;
++
+     device_free_tx_bufs(pDevice);
+     device_free_rx_bufs(pDevice);
+     device_free_int_bufs(pDevice);
+@@ -1235,7 +1233,6 @@
+     usb_free_urb(pDevice->pInterruptURB);
+ 
+     BSSvClearNodeDBTable(pDevice, 0);
+-    pDevice->flags &=(~DEVICE_FLAGS_OPENED);
+ 
+     DBG_PRT(MSG_LEVEL_DEBUG, KERN_INFO "device_close2 \n");
+ 

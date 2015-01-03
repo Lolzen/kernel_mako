@@ -1,0 +1,10 @@
+--- fs/fuse/dev.c
++++ fs/fuse/dev.c
+@@ -1576,6 +1576,7 @@
+ 		req->pages[req->num_pages] = page;
+ 		req->num_pages++;
+ 
++		offset = 0;
+ 		num -= this_num;
+ 		total_len += this_num;
+ 		index++;

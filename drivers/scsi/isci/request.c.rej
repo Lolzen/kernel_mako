@@ -1,0 +1,11 @@
+--- drivers/scsi/isci/request.c
++++ drivers/scsi/isci/request.c
+@@ -1970,7 +1970,7 @@
+ 								      frame_index,
+ 								      (void **)&frame_buffer);
+ 
+-			sci_controller_copy_sata_response(&ireq->stp.req,
++			sci_controller_copy_sata_response(&ireq->stp.rsp,
+ 							       frame_header,
+ 							       frame_buffer);
+ 

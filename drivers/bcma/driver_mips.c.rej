@@ -1,0 +1,11 @@
+--- drivers/bcma/driver_mips.c
++++ drivers/bcma/driver_mips.c
+@@ -115,7 +115,7 @@
+ 			    bcma_read32(mdev, BCMA_MIPS_MIPS74K_INTMASK(0)) &
+ 			    ~(1 << irqflag));
+ 	else
+-		bcma_write32(mdev, BCMA_MIPS_MIPS74K_INTMASK(irq), 0);
++		bcma_write32(mdev, BCMA_MIPS_MIPS74K_INTMASK(oldirq), 0);
+ 
+ 	/* assign the new one */
+ 	if (irq == 0) {

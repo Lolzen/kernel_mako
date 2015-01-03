@@ -1,0 +1,63 @@
+--- fs/ceph/export.c
++++ fs/ceph/export.c
+@@ -89,7 +89,7 @@
+  * FIXME: we should try harder by querying the mds for the ino.
+  */
+ static struct dentry *__fh_to_dentry(struct super_block *sb,
+-				     struct ceph_nfs_fh *fh)
++				     struct ceph_nfs_fh *fh, int fh_len)
+ {
+ 	struct ceph_mds_client *mdsc = ceph_sb_to_client(sb)->mdsc;
+ 	struct inode *inode;
+@@ -97,6 +97,9 @@
+ 	struct ceph_vino vino;
+ 	int err;
+ 
++	if (fh_len < sizeof(*fh) / 4)
++		return ERR_PTR(-ESTALE);
++
+ 	dout("__fh_to_dentry %llx\n", fh->ino);
+ 	vino.ino = fh->ino;
+ 	vino.snap = CEPH_NOSNAP;
+@@ -140,7 +143,7 @@
+  * convert connectable fh to dentry
+  */
+ static struct dentry *__cfh_to_dentry(struct super_block *sb,
+-				      struct ceph_nfs_confh *cfh)
++				      struct ceph_nfs_confh *cfh, int fh_len)
+ {
+ 	struct ceph_mds_client *mdsc = ceph_sb_to_client(sb)->mdsc;
+ 	struct inode *inode;
+@@ -148,6 +151,9 @@
+ 	struct ceph_vino vino;
+ 	int err;
+ 
++	if (fh_len < sizeof(*cfh) / 4)
++		return ERR_PTR(-ESTALE);
++
+ 	dout("__cfh_to_dentry %llx (%llx/%x)\n",
+ 	     cfh->ino, cfh->parent_ino, cfh->parent_name_hash);
+ 
+@@ -197,9 +203,11 @@
+ 					int fh_len, int fh_type)
+ {
+ 	if (fh_type == 1)
+-		return __fh_to_dentry(sb, (struct ceph_nfs_fh *)fid->raw);
++		return __fh_to_dentry(sb, (struct ceph_nfs_fh *)fid->raw,
++								fh_len);
+ 	else
+-		return __cfh_to_dentry(sb, (struct ceph_nfs_confh *)fid->raw);
++		return __cfh_to_dentry(sb, (struct ceph_nfs_confh *)fid->raw,
++								fh_len);
+ }
+ 
+ /*
+@@ -220,6 +228,8 @@
+ 
+ 	if (fh_type == 1)
+ 		return ERR_PTR(-ESTALE);
++	if (fh_len < sizeof(*cfh) / 4)
++		return ERR_PTR(-ESTALE);
+ 
+ 	pr_debug("fh_to_parent %llx/%d\n", cfh->parent_ino,
+ 		 cfh->parent_name_hash);

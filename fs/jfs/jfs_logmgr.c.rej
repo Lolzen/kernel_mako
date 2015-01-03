@@ -1,0 +1,12 @@
+--- fs/jfs/jfs_logmgr.c
++++ fs/jfs/jfs_logmgr.c
+@@ -1058,7 +1058,8 @@
+  */
+ void jfs_syncpt(struct jfs_log *log, int hard_sync)
+ {	LOG_LOCK(log);
+-	lmLogSync(log, hard_sync);
++	if (!test_bit(log_QUIESCE, &log->flag))
++		lmLogSync(log, hard_sync);
+ 	LOG_UNLOCK(log);
+ }
+ 

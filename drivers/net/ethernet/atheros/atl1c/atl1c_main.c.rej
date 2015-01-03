@@ -1,0 +1,10 @@
+--- drivers/net/ethernet/atheros/atl1c/atl1c_main.c
++++ drivers/net/ethernet/atheros/atl1c/atl1c_main.c
+@@ -267,7 +267,6 @@
+ 				dev_warn(&pdev->dev, "stop mac failed\n");
+ 		atl1c_set_aspm(hw, false);
+ 		netif_carrier_off(netdev);
+-		netif_stop_queue(netdev);
+ 		atl1c_phy_reset(hw);
+ 		atl1c_phy_init(&adapter->hw);
+ 	} else {

@@ -1,0 +1,16 @@
+--- drivers/net/ethernet/marvell/skge.c
++++ drivers/net/ethernet/marvell/skge.c
+@@ -4153,6 +4153,13 @@
+ 			DMI_MATCH(DMI_BOARD_NAME, "nForce"),
+ 		},
+ 	},
++	{
++		.ident = "ASUS P5NSLI",
++		.matches = {
++			DMI_MATCH(DMI_BOARD_VENDOR, "ASUSTeK Computer INC."),
++			DMI_MATCH(DMI_BOARD_NAME, "P5NSLI")
++		},
++	},
+ 	{}
+ };
+ 

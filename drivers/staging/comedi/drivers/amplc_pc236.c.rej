@@ -1,0 +1,11 @@
+--- drivers/staging/comedi/drivers/amplc_pc236.c
++++ drivers/staging/comedi/drivers/amplc_pc236.c
+@@ -468,7 +468,7 @@
+ {
+ 	printk(KERN_DEBUG "comedi%d: %s: detach\n", dev->minor,
+ 	       PC236_DRIVER_NAME);
+-	if (devpriv)
++	if (dev->iobase)
+ 		pc236_intr_disable(dev);
+ 
+ 	if (dev->irq)

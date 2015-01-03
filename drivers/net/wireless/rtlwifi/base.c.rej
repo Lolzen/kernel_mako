@@ -1,0 +1,30 @@
+--- drivers/net/wireless/rtlwifi/base.c
++++ drivers/net/wireless/rtlwifi/base.c
+@@ -980,7 +980,8 @@
+ 					 is_tx ? "Tx" : "Rx");
+ 
+ 				if (is_tx) {
+-					rtl_lps_leave(hw);
++					schedule_work(&rtlpriv->
++						      works.lps_leave_work);
+ 					ppsc->last_delaylps_stamp_jiffies =
+ 					    jiffies;
+ 				}
+@@ -990,7 +991,7 @@
+ 		}
+ 	} else if (ETH_P_ARP == ether_type) {
+ 		if (is_tx) {
+-			rtl_lps_leave(hw);
++			schedule_work(&rtlpriv->works.lps_leave_work);
+ 			ppsc->last_delaylps_stamp_jiffies = jiffies;
+ 		}
+ 
+@@ -1000,7 +1001,7 @@
+ 			 "802.1X %s EAPOL pkt!!\n", is_tx ? "Tx" : "Rx");
+ 
+ 		if (is_tx) {
+-			rtl_lps_leave(hw);
++			schedule_work(&rtlpriv->works.lps_leave_work);
+ 			ppsc->last_delaylps_stamp_jiffies = jiffies;
+ 		}
+ 

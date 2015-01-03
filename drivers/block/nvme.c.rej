@@ -1,0 +1,11 @@
+--- drivers/block/nvme.c
++++ drivers/block/nvme.c
+@@ -1153,7 +1153,7 @@
+ 	struct nvme_admin_cmd cmd;
+ 	struct nvme_command c;
+ 	int status, length;
+-	struct nvme_iod *iod;
++	struct nvme_iod *uninitialized_var(iod);
+ 
+ 	if (!capable(CAP_SYS_ADMIN))
+ 		return -EACCES;

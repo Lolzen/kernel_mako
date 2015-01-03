@@ -1,0 +1,10 @@
+--- drivers/of/base.c
++++ drivers/of/base.c
+@@ -1227,6 +1227,7 @@
+ 		ap = dt_alloc(sizeof(*ap) + len + 1, 4);
+ 		if (!ap)
+ 			continue;
++		memset(ap, 0, sizeof(*ap) + len + 1);
+ 		ap->alias = start;
+ 		of_alias_add(ap, np, id, start, len);
+ 	}

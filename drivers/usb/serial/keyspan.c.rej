@@ -1,0 +1,11 @@
+--- drivers/usb/serial/keyspan.c
++++ drivers/usb/serial/keyspan.c
+@@ -1705,7 +1705,7 @@
+ 	d_details = s_priv->device_details;
+ 	device_port = port->number - port->serial->minor;
+ 
+-	outcont_urb = d_details->outcont_endpoints[port->number];
++	outcont_urb = d_details->outcont_endpoints[device_port];
+ 	this_urb = p_priv->outcont_urb;
+ 
+ 	dbg("%s - endpoint %d", __func__, usb_pipeendpoint(this_urb->pipe));

@@ -1,0 +1,20 @@
+--- drivers/net/can/mscan/mpc5xxx_can.c
++++ drivers/net/can/mscan/mpc5xxx_can.c
+@@ -181,7 +181,7 @@
+ 
+ 		if (!clock_name || !strcmp(clock_name, "sys")) {
+ 			sys_clk = clk_get(&ofdev->dev, "sys_clk");
+-			if (!sys_clk) {
++			if (IS_ERR(sys_clk)) {
+ 				dev_err(&ofdev->dev, "couldn't get sys_clk\n");
+ 				goto exit_unmap;
+ 			}
+@@ -204,7 +204,7 @@
+ 
+ 		if (clocksrc < 0) {
+ 			ref_clk = clk_get(&ofdev->dev, "ref_clk");
+-			if (!ref_clk) {
++			if (IS_ERR(ref_clk)) {
+ 				dev_err(&ofdev->dev, "couldn't get ref_clk\n");
+ 				goto exit_unmap;
+ 			}

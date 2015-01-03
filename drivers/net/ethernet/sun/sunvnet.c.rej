@@ -1,0 +1,11 @@
+--- drivers/net/ethernet/sun/sunvnet.c
++++ drivers/net/ethernet/sun/sunvnet.c
+@@ -1243,6 +1243,8 @@
+ 		dev_set_drvdata(&vdev->dev, NULL);
+ 
+ 		kfree(port);
++
++		unregister_netdev(vp->dev);
+ 	}
+ 	return 0;
+ }
