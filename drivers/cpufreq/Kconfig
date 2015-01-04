@@ -44,8 +44,8 @@ config CPU_FREQ_STAT_DETAILS
 
 choice
 	prompt "Default CPUFreq governor"
-	default CPU_FREQ_DEFAULT_GOV_ONDEMANDX if CPU_FREQ_SA1100 || CPU_FREQ_SA1110
-	default CPU_FREQ_DEFAULT_GOV_ONDEMANDX
+	default CPU_FREQ_DEFAULT_GOV_ONDEMAND if CPU_FREQ_SA1100 || CPU_FREQ_SA1110
+	default CPU_FREQ_DEFAULT_GOV_ONDEMAND
 	help
 	  This option sets which CPUFreq governor shall be loaded at
 	  startup. If in doubt, select 'performance'.
@@ -94,21 +94,6 @@ config CPU_FREQ_DEFAULT_GOV_ONDEMAND
 	  Be aware that not all cpufreq drivers support the ondemand
 	  governor. If unsure have a look at the help section of the
 	  driver. Fallback governor will be the performance governor.
-
-config CPU_FREQ_DEFAULT_GOV_ONDEMANDX
-	bool "ondemandX"
-	select CPU_FREQ_GOV_ONDEMANDX
-	select CPU_FREQ_GOV_ONDEMANDX
-	help
-	  Use the CPUFreq governor 'ondemand' as default. This allows
-	  you to get a full dynamic frequency capable system by simply
-	  loading your cpufreq low-level hardware driver.
-	  Be aware that not all cpufreq drivers support the ondemand
-	  governor. If unsure have a look at the help section of the
-	  driver. Fallback governor will be the performance governor.
-	  OndemandX has built in sleep profile, but not working Sysfs
-	  interface.
-
 
 config CPU_FREQ_DEFAULT_GOV_CONSERVATIVE
 	bool "conservative"
@@ -171,7 +156,6 @@ config CPU_FREQ_GOV_SMARTASS2
 
 	   If in doubt, say N.
 
-
 config CPU_FREQ_GOV_USERSPACE
 	tristate "'userspace' governor for userspace frequency scaling"
 	help
@@ -197,24 +181,6 @@ config CPU_FREQ_GOV_ONDEMAND
 	  The support for this governor depends on CPU capability to
 	  do fast frequency switching (i.e, very low latency frequency
 	  transitions). 
-
-	  To compile this driver as a module, choose M here: the
-	  module will be called cpufreq_ondemand.
-
-	  For details, take a look at linux/Documentation/cpu-freq.
-
-	  If in doubt, say N.
-
-config CPU_FREQ_GOV_ONDEMANDX
-	tristate "'ondemandx' cpufreq policy governor"
-	select CPU_FREQ_TABLE
-	help
-	  'ondemandx' - This driver adds a dynamic cpufreq policy governor.
-	  The governor does a periodic polling and
-	  changes frequency based on the CPU utilization.
-	  The support for this governor depends on CPU capability to
-	  do fast frequency switching (i.e, very low latency frequency
-	  transitions).
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called cpufreq_ondemand.
