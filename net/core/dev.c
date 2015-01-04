@@ -6168,7 +6168,6 @@ int dev_change_net_namespace(struct net_device *dev, struct net *net, const char
 
 	/* Add the device back in the hashes */
 	list_netdevice(dev);
-	add_device_randomness(dev->dev_addr, dev->addr_len);
 
 	/* Notify protocols, that a new device appeared. */
 	call_netdevice_notifiers(NETDEV_REGISTER, dev);
