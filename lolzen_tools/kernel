@@ -25,13 +25,13 @@ jobs=6
 #the actual script fuction
 case "$1" in
 -c | --compile)
-#export PATH=$PATH:$gcc_dir
 cd $kernel_src_dir
+export PATH=$PATH:$kernel_src_dir/lolzen_tools/toolchain/arm-linux-androideabi-$gcc_version/bin
 export ARCH=arm
 export SUBARCH=arm
 export CROSS_COMPILE=arm-linux-androideabi-
 make mako_lolzen_defconfig
-#make -j$jobs
+make -j$jobs
 ;;
 -d | --delete)
 cd $kernel_src_dir
@@ -43,7 +43,11 @@ rm -rf $zip_dir/kernel/zImage
 cp $kernel_src_dir/arch/arm/boot/zImage $zip_dir/kernel/zImage
 cd $zip_dir
 zip -r9 kernel.zip *
+if [ ! "$2" ]; then
 mv kernel.zip $drive_dir/myKernel/lolzen-$(date +%y-%m-%d).zip
+else
+mv kernel.zip $drive_dir/myKernel/lolzen-$(date +%y-%m-%d)-$2.zip
+fi
 cd $drive_dir
 drive push
 ;;
