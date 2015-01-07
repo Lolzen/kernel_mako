@@ -26,7 +26,7 @@ jobs=6
 case "$1" in
 -c | --compile)
 cd $kernel_src_dir
-export PATH=$PATH:$kernel_src_dir/lolzen_tools/toolchain/arm-linux-androideabi-$gcc_version/bin
+export PATH=$PATH:$gcc_dir
 export ARCH=arm
 export SUBARCH=arm
 export CROSS_COMPILE=arm-linux-androideabi-
