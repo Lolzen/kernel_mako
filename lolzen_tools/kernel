@@ -23,7 +23,7 @@ jobs=6
 
 
 #the actual script fuction
-case "%1" in
+case "$1" in
 -c | --compile)
 #export PATH=$PATH:$gcc_dir
 cd $kernel_src_dir
@@ -48,7 +48,7 @@ cd $drive_dir
 drive push
 ;;
 -f | --fresh)
-kernel -d && kernel -b
+kernel -d && kernel -c
 ;;
 *)
 echo '########################## config ###########################'
