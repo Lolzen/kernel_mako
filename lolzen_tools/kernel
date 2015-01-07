@@ -1,0 +1,76 @@
+#!/bin/sh
+
+#
+#	a simple script to make stuff easier; i'm lazy
+#	!COPY TO /home/$USER/bin AND MAKE IT EXECUTABLE (chmod a+x)!
+#
+
+#diretory variables
+#kernel_src_dir: /path/to/kernel_src
+#zip_dir: /path/to/zip_dir
+#drive_dir: /path/to/drive_dir !!needs https://github.com/odeke-em/drive to work!!
+kernel_src_dir=/home/$USER/kernel_mako
+zip_dir=$kernel_src_dir/lolzen_tools/zip
+drive_dir=/home/$USER/drive
+
+#version and location of the toolchain to use
+gcc_version=4.9
+gcc_dir=$kernel_src_dir/lolzen_tools/toolchain/arm-linux-androideabi-$gcc_version/bin
+
+#how many jobs to be used for compiling
+jobs=6
+
+
+
+#the actual script fuction
+case "%1" in
+-c | --compile)
+#export PATH=$PATH:$gcc_dir
+cd $kernel_src_dir
+export ARCH=arm
+export SUBARCH=arm
+export CROSS_COMPILE=arm-linux-androideabi-
+make mako_lolzen_defconfig
+#make -j$jobs
+;;
+-d | --delete)
+cd $kernel_src_dir
+make clean
+rm -rf $kernel_src_dir/kernel/msm/arch/arm/boot/zImage
+rm -rf $zip_dir/kernel/zImage
+;;
+-z | --zip)
+cp $kernel_src_dir/arch/arm/boot/zImage $zip_dir/kernel/zImage
+cd $zip_dir
+zip -r9 kernel.zip *
+mv kernel.zip $drive_dir/myKernel/lolzen-$(date +%y-%m-%d).zip
+cd $drive_dir
+drive push
+;;
+-f | --fresh)
+kernel -d && kernel -b
+;;
+*)
+echo '########################## config ###########################'
+echo '--kernel source code directory:'
+echo $kernel_src_dir
+echo '--zip directory:'
+echo $zip_dir
+echo '--drive directory:'
+echo $drive_dir
+echo '--target toolchain version:'
+echo $gcc_version
+echo '--toolchain directory to the target toolchain:'
+echo $gcc_dir
+echo '--number of jobs to use at compilation:'
+echo $jobs
+echo '#############################################################'
+echo 'USAGE: kernel [options]'
+echo '-c | --compile'
+echo 'compiles the kernel'
+echo '-d | --delete'
+echo 'delete anything compiled'
+echo '-z | --zip'
+echo 'zip the zImage with AnyKernel, to get a flashable zip and push to google drive'
+;;
+esac
