@@ -60,9 +60,15 @@ BRIEF DESCRIPTION:
 #define QWLAN_VERSION_MINOR            2
 #define QWLAN_VERSION_PATCH            3
 #define QWLAN_VERSION_EXTRA            ""
+<<<<<<< HEAD
 #define QWLAN_VERSION_BUILD            183
 
 #define QWLAN_VERSIONSTR               "3.2.3.183"
+=======
+#define QWLAN_VERSION_BUILD            179
+
+#define QWLAN_VERSIONSTR               "3.2.3.179"
+>>>>>>> parent of f0c8b74... prima 3.2.3.182 caf
 
 #endif /* QWLAN_VERSION_H */
 
