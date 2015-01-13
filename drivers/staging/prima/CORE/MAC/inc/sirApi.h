@@ -4307,8 +4307,6 @@ typedef struct sSirLPHBTcpParamStruct
    v_U16_t      timeout;
    v_U8_t       session;
    tSirMacAddr  gateway_mac;
-   uint16       timePeriodSec; // in seconds
-   uint32       tcpSn;
 } tSirLPHBTcpParamStruct;
 
 typedef struct sSirLPHBTcpFilterStruct
@@ -4353,12 +4351,12 @@ typedef struct sSirLPHBReq
    } params;
 } tSirLPHBReq;
 
-typedef struct sSirLPHBInd
+typedef struct sSirLPHBTimeoutInd
 {
    v_U8_t sessionIdx;
    v_U8_t protocolType; /*TCP or UDP*/
    v_U8_t eventReason;
-} tSirLPHBInd;
+} tSirLPHBTimeoutInd;
 #endif /* FEATURE_WLAN_LPHB */
 
 typedef struct sSirAddPeriodicTxPtrn

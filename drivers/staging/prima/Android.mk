@@ -1,8 +1,5 @@
 # Android makefile for the WLAN Module
 
-# Assume no targets will be supported
-WLAN_CHIPSET :=
-
 # Build/Package options for 8960 target
 ifeq ($(call is-board-platform,msm8960),true)
 WLAN_CHIPSET := prima
@@ -36,8 +33,7 @@ else
     WLAN_BLD_DIR := vendor/qcom/opensource/wlan
 endif
 
-# DLKM_DIR was moved for JELLY_BEAN (PLATFORM_SDK 16)
-ifeq ($(call is-platform-sdk-version-at-least,16),true)
+ifeq ($(call is-android-codename,JELLY_BEAN),true)
        DLKM_DIR := $(TOP)/device/qcom/common/dlkm
 else
        DLKM_DIR := build/dlkm

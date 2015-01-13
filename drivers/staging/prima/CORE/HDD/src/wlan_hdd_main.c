@@ -638,31 +638,16 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 
            country_code = command + 8;
 
-           INIT_COMPLETION(pAdapter->change_country_code);
            hdd_checkandupdate_dfssetting(pAdapter, country_code);
            hdd_checkandupdate_phymode(pAdapter, country_code);
-           ret = (int)sme_ChangeCountryCode(pHddCtx->hHal,
-                  (void *)(tSmeChangeCountryCallback)
-                    wlan_hdd_change_country_code_callback,
-                     country_code, pAdapter, pHddCtx->pvosContext, eSIR_TRUE);
-           if (eHAL_STATUS_SUCCESS == ret)
-           {
-               ret = wait_for_completion_interruptible_timeout(
-                       &pAdapter->change_country_code,
-                            msecs_to_jiffies(WLAN_WAIT_TIME_COUNTRY));
-               if (0 >= ret)
-               {
-                   hddLog(VOS_TRACE_LEVEL_ERROR, "%s: SME while setting country code timed out",
-                   __func__);
-               }
-           }
-           else
+           ret = (int)sme_ChangeCountryCode(pHddCtx->hHal, NULL, country_code,
+                    pAdapter, pHddCtx->pvosContext, eSIR_TRUE);
+           if( 0 != ret )
            {
                VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
-                 "%s: SME Change Country code fail ret=%d", __func__, ret);
-               ret = -EINVAL;
-           }
+                       "%s: SME Change Country code fail ret=%d\n",__func__, ret);
 
+           }
        }
        /*
           command should be a string having format
@@ -3161,7 +3146,6 @@ static hdd_adapter_t* hdd_alloc_station_adapter( hdd_context_t *pHddCtx, tSirMac
       init_completion(&pHddCtx->tx_sus_event_var);
       init_completion(&pHddCtx->rx_sus_event_var);
       init_completion(&pAdapter->ula_complete);
-      init_completion(&pAdapter->change_country_code);
 
       pAdapter->isLinkUpSvcNeeded = FALSE; 
       pAdapter->higherDtimTransition = eANI_BOOLEAN_TRUE;
@@ -3436,13 +3420,6 @@ void hdd_deinit_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
       case WLAN_HDD_SOFTAP:
       case WLAN_HDD_P2P_GO:
       {
-
-         if (test_bit(WMM_INIT_DONE, &pAdapter->event_flags))
-         {
-            hdd_wmm_adapter_close( pAdapter );
-            clear_bit(WMM_INIT_DONE, &pAdapter->event_flags);
-         }
-
          hdd_cleanup_actionframe(pHddCtx, pAdapter);
 
          hdd_unregister_hostapd(pAdapter);
@@ -4182,11 +4159,7 @@ VOS_STATUS hdd_reset_all_adapters( hdd_context_t *pHddCtx )
       pAdapter->sessionCtx.station.hdd_ReassocScenario = VOS_FALSE;
 
       hdd_deinit_tx_rx(pAdapter);
-      if (test_bit(WMM_INIT_DONE, &pAdapter->event_flags))
-      {
-          hdd_wmm_adapter_close( pAdapter );
-          clear_bit(WMM_INIT_DONE, &pAdapter->event_flags);
-      }
+      hdd_wmm_adapter_close(pAdapter);
 
       status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
       pAdapterNode = pNext;
@@ -4929,8 +4902,6 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
       {
          pAdapter = hdd_get_adapter(pHddCtx,
                                     WLAN_HDD_INFRA_STATION);
-         if (pAdapter == NULL)
-            pAdapter = hdd_get_adapter(pHddCtx, WLAN_HDD_IBSS);
       }
    }
    /* DeRegister with platform driver as client for Suspend/Resume */
@@ -4960,11 +4931,7 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    // we are about to Request Full Power, and since that is synchronized,
    // the expectation is that by the time Request Full Power has completed,
    // all scans will be cancelled.
-   if (NULL != pAdapter)
-      hdd_abort_mac_scan( pHddCtx, pAdapter->sessionId);
-   else
-       hddLog(VOS_TRACE_LEVEL_ERROR,
-           "%s: pAdapter is NULL, cannot Abort scan", __func__);
+   hdd_abort_mac_scan( pHddCtx, pAdapter->sessionId);
 
    //Stop the traffic monitor timer
    if ( VOS_TIMER_STATE_RUNNING ==

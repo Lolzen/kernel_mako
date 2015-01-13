@@ -8370,29 +8370,29 @@ static int wlan_hdd_cfg80211_set_mac_acl(struct wiphy *wiphy,
 
 #ifdef WLAN_NL80211_TESTMODE
 #ifdef FEATURE_WLAN_LPHB
-void wlan_hdd_cfg80211_lphb_ind_handler
+static void wlan_hdd_cfg80211_lphb_wait_timeout_ind_handler
 (
    void *pAdapter,
    void *indCont
 )
 {
-   tSirLPHBInd     *lphbInd;
-   struct sk_buff  *skb;
+   tSirLPHBTimeoutInd   *lphbTimeoutInd;
+   struct sk_buff       *skb;
 
    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-             "LPHB indication arrived");
+             "LPHB wait timeout indication arrived");
 
    if (NULL == indCont)
    {
       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                "LPHB IND, invalid argument");
+                "LPHB timeout, invalid argument");
       return;
    }
 
-   lphbInd = (tSirLPHBInd *)indCont;
+   lphbTimeoutInd = (tSirLPHBTimeoutInd *)indCont;
    skb = cfg80211_testmode_alloc_event_skb(
                   ((hdd_adapter_t *)pAdapter)->wdev.wiphy,
-                  sizeof(tSirLPHBInd),
+                  sizeof(tSirLPHBTimeoutInd),
                   GFP_ATOMIC);
    if (!skb)
    {
@@ -8401,25 +8401,10 @@ void wlan_hdd_cfg80211_lphb_ind_handler
       return;
    }
 
-   if(!nla_put_u32(skb, WLAN_HDD_TM_ATTR_CMD, WLAN_HDD_TM_CMD_WLAN_HB))
-   {
-      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                "WLAN_HDD_TM_ATTR_CMD put fail");
-      goto nla_put_failure;
-   }
-   if(!nla_put_u32(skb, WLAN_HDD_TM_ATTR_TYPE, lphbInd->protocolType))
-   {
-      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                "WLAN_HDD_TM_ATTR_TYPE put fail");
-      goto nla_put_failure;
-   }
-   if(!nla_put(skb, WLAN_HDD_TM_ATTR_DATA,
-           sizeof(tSirLPHBInd), lphbInd))
-   {
-      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                "WLAN_HDD_TM_ATTR_DATA put fail");
-      goto nla_put_failure;
-   }
+   NLA_PUT_U32(skb, WLAN_HDD_TM_ATTR_CMD, WLAN_HDD_TM_CMD_WLAN_HB);
+   NLA_PUT_U32(skb, WLAN_HDD_TM_ATTR_TYPE, lphbTimeoutInd->protocolType);
+   NLA_PUT(skb, WLAN_HDD_TM_ATTR_DATA,
+           sizeof(tSirLPHBTimeoutInd), lphbTimeoutInd);
    cfg80211_testmode_event(skb, GFP_ATOMIC);
    return;
 
@@ -8438,7 +8423,6 @@ static int wlan_hdd_cfg80211_testmode(struct wiphy *wiphy, void *data, int len)
     int err = 0;
 #ifdef FEATURE_WLAN_LPHB
     hdd_context_t *pHddCtx = wiphy_priv(wiphy);
-    eHalStatus smeStatus;
 #endif /* FEATURE_WLAN_LPHB */
 
     err = nla_parse(tb, WLAN_HDD_TM_ATTR_MAX, data, len, wlan_hdd_tm_policy);
@@ -8484,14 +8468,42 @@ static int wlan_hdd_cfg80211_testmode(struct wiphy *wiphy, void *data, int len)
             }
 
             vos_mem_copy(hb_params, buf, buf_len);
-            smeStatus = sme_LPHBConfigReq((tHalHandle)(pHddCtx->hHal),
-                               hb_params,
-                               wlan_hdd_cfg80211_lphb_ind_handler);
-            if (eHAL_STATUS_SUCCESS != smeStatus)
+
+            /* LPHB enable and disable request will send to FW
+             * when host suspend and resume
+             * host suspend -> enable LPHB
+             * host resume  -> disable LPHB
+             * if host is not suspend, cache into HDD context
+             * and when host goes to suspend, send request to FW */
+            if ((LPHB_SET_EN_PARAMS_INDID == hb_params->cmd) &&
+               (!pHddCtx->hdd_wlan_suspended))
             {
-               VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                         "LPHB Config Fail, disable");
+               /* Feature enable command cache into HDD context,
+                * if WLAN is not suspend
+                * When WLAN goes into suspend, send enable command to FW */
+               pHddCtx->lphbEnableReq.enable  =
+                                    hb_params->params.lphbEnableReq.enable;
+               pHddCtx->lphbEnableReq.item    =
+                                    hb_params->params.lphbEnableReq.item;
+               pHddCtx->lphbEnableReq.session =
+                                    hb_params->params.lphbEnableReq.session;
                vos_mem_free(hb_params);
+            }
+            else
+            {
+               eHalStatus smeStatus;
+
+               /* If WLAN is suspend state, send enable command immediately */
+               smeStatus = sme_LPHBConfigReq((tHalHandle)(pHddCtx->hHal),
+                              hb_params,
+                              wlan_hdd_cfg80211_lphb_wait_timeout_ind_handler);
+               if (eHAL_STATUS_SUCCESS != smeStatus)
+               {
+                  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                            "LPHB Config Fail, disable");
+                  pHddCtx->lphbEnableReq.enable = 0;
+                  vos_mem_free(hb_params);
+               }
             }
             return 0;
          }

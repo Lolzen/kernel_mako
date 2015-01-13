@@ -12018,33 +12018,33 @@ void WDA_lowLevelIndCallback(WDI_LowLevelIndType *wdiLowLevelInd,
       }
   
 #ifdef FEATURE_WLAN_LPHB
-      case WDI_LPHB_IND:
+      case WDI_LPHB_WAIT_TIMEOUT_IND:
       {
-         vos_msg_t     vosMsg;
-         tSirLPHBInd  *lphbInd;
+         vos_msg_t            vosMsg;
+         tSirLPHBTimeoutInd  *lphbTimeoutInd;
 
-         lphbInd =
-           (tSirLPHBInd *)vos_mem_malloc(sizeof(tSirLPHBInd));
-         if (NULL == lphbInd)
+         lphbTimeoutInd =
+           (tSirLPHBTimeoutInd *)vos_mem_malloc(sizeof(tSirLPHBTimeoutInd));
+         if (NULL == lphbTimeoutInd)
          {
             VOS_TRACE(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
                            "%s: LPHB IND buffer alloc Fail", __func__);
             return ;
          }
 
-         lphbInd->sessionIdx =
+         lphbTimeoutInd->sessionIdx =
               wdiLowLevelInd->wdiIndicationData.wdiLPHBTimeoutInd.sessionIdx;
-         lphbInd->protocolType =
+         lphbTimeoutInd->protocolType =
               wdiLowLevelInd->wdiIndicationData.wdiLPHBTimeoutInd.protocolType;
-         lphbInd->eventReason =
+         lphbTimeoutInd->eventReason =
               wdiLowLevelInd->wdiIndicationData.wdiLPHBTimeoutInd.eventReason;
 
          VOS_TRACE(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                   "Get WDI_LPHB_IND bssIdx %d",
+                   "Get WDI_LPHB_WAIT_TIMEOUT_IND bssIdx %d",
                    wdiLowLevelInd->wdiIndicationData.wdiLPHBTimeoutInd.bssIdx);
 
-         vosMsg.type    = eWNI_SME_LPHB_IND;
-         vosMsg.bodyptr = lphbInd;
+         vosMsg.type    = eWNI_SME_LPHB_WAIT_TIMEOUT_IND;
+         vosMsg.bodyptr = lphbTimeoutInd;
          vosMsg.bodyval = 0;
          /* Send message to SME */
          if (VOS_STATUS_SUCCESS !=
@@ -12052,7 +12052,7 @@ void WDA_lowLevelIndCallback(WDI_LowLevelIndType *wdiLowLevelInd,
          {
             VOS_TRACE(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_WARN,
                       "post WDI_LPHB_WAIT_TIMEOUT_IND to SME Failed");
-            vos_mem_free(lphbInd);
+            vos_mem_free(lphbTimeoutInd);
          }
          break;
       }
