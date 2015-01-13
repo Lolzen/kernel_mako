@@ -166,18 +166,7 @@ typedef enum
 #else
 #define IS_ROAM_SCAN_OFFLOAD_FEATURE_ENABLE 0
 #endif
-<<<<<<< HEAD
-=======
 
-/* Check if heartbeat offload is enabled */
-#define IS_IBSS_HEARTBEAT_OFFLOAD_FEATURE_ENABLE ((WDI_getHostWlanFeatCaps(IBSS_HEARTBEAT_OFFLOAD)) & (WDA_getFwWlanFeatCaps(IBSS_HEARTBEAT_OFFLOAD)))
->>>>>>> eee6ad8... prima 3.2.3.178 caf
-
-#ifdef FEATURE_WLAN_TDLS
-#define IS_ADVANCE_TDLS_ENABLE ((WDI_getHostWlanFeatCaps(ADVANCE_TDLS)) & (WDA_getFwWlanFeatCaps(ADVANCE_TDLS)))
-#else
-#define IS_ADVANCE_TDLS_ENABLE 0
-#endif
 /*--------------------------------------------------------------------------
   Definitions for Data path APIs
  --------------------------------------------------------------------------*/
@@ -415,9 +404,6 @@ typedef struct
    v_BOOL_t             needShutdown;
    v_BOOL_t             wdiFailed;
    v_BOOL_t             wdaTimersCreated;
-
-   /* Event to wait for WDA stop on FTM mode */
-   vos_event_t          ftmStopDoneEvent;
 } tWDA_CbContext ; 
 
 typedef struct
@@ -606,9 +592,6 @@ tBssSystemRole wdaGetGlobalSystemRole(tpAniSirGlobal pMac);
 
 /* WDA_GET_RX_CH *************************************************************/
 #  define WDA_GET_RX_CH(pRxMeta) (((WDI_DS_RxMetaInfoType*)(pRxMeta))->rxChannel)
-
-/* WDA_GET_RX_RFBAND *********************************************************/
-#  define WDA_GET_RX_RFBAND(pRxMeta) (((WDI_DS_RxMetaInfoType*)(pRxMeta))->rfBand)
 
 /* WDA_GET_RX_DPUSIG *********************************************************/
 #  define WDA_GET_RX_DPUSIG(pRxMeta)  (((WDI_DS_RxMetaInfoType*)(pRxMeta))->dpuSig)
@@ -1016,8 +999,6 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #define WDA_DEL_STA_SELF_REQ           SIR_HAL_DEL_STA_SELF_REQ
 
 #define WDA_SET_P2P_GO_NOA_REQ         SIR_HAL_SET_P2P_GO_NOA_REQ
-#define WDA_SET_TDLS_LINK_ESTABLISH_REQ SIR_HAL_TDLS_LINK_ESTABLISH_REQ
-#define WDA_SET_TDLS_LINK_ESTABLISH_REQ_RSP SIR_HAL_TDLS_LINK_ESTABLISH_REQ_RSP
 
 #define WDA_TX_COMPLETE_TIMEOUT_IND  (WDA_MSG_TYPES_END - 1)
 #define WDA_WLAN_SUSPEND_IND           SIR_HAL_WLAN_SUSPEND_IND
@@ -1049,10 +1030,6 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
 #define WDA_ROAM_SCAN_OFFLOAD_REQ   SIR_HAL_ROAM_SCAN_OFFLOAD_REQ
-<<<<<<< HEAD
-=======
-#define WDA_ROAM_SCAN_OFFLOAD_RSP   SIR_HAL_ROAM_SCAN_OFFLOAD_RSP
->>>>>>> eee6ad8... prima 3.2.3.178 caf
 #endif
 
 #ifdef WLAN_WAKEUP_EVENTS
@@ -1068,9 +1045,6 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #endif // WLAN_FEATURE_PACKET_FILTERING
 
 #define WDA_SET_POWER_PARAMS_REQ   SIR_HAL_SET_POWER_PARAMS_REQ
-#define WDA_DHCP_START_IND              SIR_HAL_DHCP_START_IND
-#define WDA_DHCP_STOP_IND               SIR_HAL_DHCP_STOP_IND
-
 
 #ifdef WLAN_FEATURE_GTK_OFFLOAD
 #define WDA_GTK_OFFLOAD_REQ             SIR_HAL_GTK_OFFLOAD_REQ
@@ -1086,23 +1060,6 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 
 #define WDA_GET_ROAM_RSSI_REQ      SIR_HAL_GET_ROAM_RSSI_REQ
 #define WDA_GET_ROAM_RSSI_RSP      SIR_HAL_GET_ROAM_RSSI_RSP
-
-#define WDA_START_SCAN_OFFLOAD_REQ  SIR_HAL_START_SCAN_OFFLOAD_REQ
-#define WDA_START_SCAN_OFFLOAD_RSP  SIR_HAL_START_SCAN_OFFLOAD_RSP
-#define WDA_STOP_SCAN_OFFLOAD_REQ  SIR_HAL_STOP_SCAN_OFFLOAD_REQ
-#define WDA_STOP_SCAN_OFFLOAD_RSP  SIR_HAL_STOP_SCAN_OFFLOAD_RSP
-#define WDA_UPDATE_CHAN_LIST_REQ    SIR_HAL_UPDATE_CHAN_LIST_REQ
-#define WDA_UPDATE_CHAN_LIST_RSP    SIR_HAL_UPDATE_CHAN_LIST_RSP
-#define WDA_RX_SCAN_EVENT           SIR_HAL_RX_SCAN_EVENT
-#define WDA_IBSS_PEER_INACTIVITY_IND SIR_HAL_IBSS_PEER_INACTIVITY_IND
-
-#ifdef FEATURE_WLAN_LPHB
-#define WDA_LPHB_CONF_REQ          SIR_HAL_LPHB_CONF_IND
-#define WDA_LPHB_WAIT_EXPIRE_IND   SIR_HAL_LPHB_WAIT_EXPIRE_IND
-#endif /* FEATURE_WLAN_LPHB */
-
-#define WDA_ADD_PERIODIC_TX_PTRN_IND    SIR_HAL_ADD_PERIODIC_TX_PTRN_IND
-#define WDA_DEL_PERIODIC_TX_PTRN_IND    SIR_HAL_DEL_PERIODIC_TX_PTRN_IND
 
 tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
 
@@ -1155,15 +1112,6 @@ v_BOOL_t WDA_IsHwFrameTxTranslationCapable(v_PVOID_t pVosGCtx,
 #define WDA_UpdateRssiBmps(pvosGCtx,  staId, rssi) \
         WLANTL_UpdateRssiBmps(pvosGCtx, staId, rssi)
 
-<<<<<<< HEAD
-=======
-#define WDA_UpdateSnrBmps(pvosGCtx,  staId, rssi) \
-        WLANTL_UpdateSnrBmps(pvosGCtx, staId, snr)
-
-#define WDA_GetSnr(staId, snr) \
-        WLANTL_GetSnr(staId, snr)
-
->>>>>>> eee6ad8... prima 3.2.3.178 caf
 #define WDA_UpdateLinkCapacity(pvosGCtx,  staId, linkCapacity) \
         WLANTL_UpdateLinkCapacity(pvosGCtx, staId, linkCapacity)
 

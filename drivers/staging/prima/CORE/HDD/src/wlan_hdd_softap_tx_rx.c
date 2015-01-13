@@ -589,19 +589,10 @@ VOS_STATUS hdd_softap_init_tx_rx( hdd_adapter_t *pAdapter )
       }
    }
 
-   pHddCtx = (hdd_context_t *)pAdapter->pHddCtx;
-   if (NULL == pHddCtx)
-   {
-      VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
-                 "%s: Invalid HDD cntxt", __func__ );
-      return VOS_STATUS_E_INVAL;
-   }
-
    /* Update the AC weights suitable for SoftAP mode of operation */
    WLANTL_SetACWeights((WLAN_HDD_GET_CTX(pAdapter))->pvosContext, pACWeights);
 
    /* Initialize SAP/P2P-GO traffin monitor */
-<<<<<<< HEAD
    pHddCtx = (hdd_context_t *)pAdapter->pHddCtx;
    if (NULL == pHddCtx)
    {
@@ -609,8 +600,6 @@ VOS_STATUS hdd_softap_init_tx_rx( hdd_adapter_t *pAdapter )
                  "%s: Invalid HDD cntxt", __func__ );
       return VOS_STATUS_E_INVAL;
    }
-=======
->>>>>>> eee6ad8... prima 3.2.3.178 caf
    if ((pHddCtx->cfg_ini->enableTrafficMonitor) &&
        (!pHddCtx->traffic_monitor.isInitialized))
    {
@@ -1415,7 +1404,6 @@ VOS_STATUS hdd_softap_DeregisterSTA( hdd_adapter_t *pAdapter, tANI_U8 staId )
                     "%s: pAdapter is NULL", __func__);
         return VOS_STATUS_E_INVAL;
     }
-<<<<<<< HEAD
 
     if (WLAN_HDD_ADAPTER_MAGIC != pAdapter->magic)
     {
@@ -1424,16 +1412,6 @@ VOS_STATUS hdd_softap_DeregisterSTA( hdd_adapter_t *pAdapter, tANI_U8 staId )
         return VOS_STATUS_E_INVAL;
     }
 
-=======
-
-    if (WLAN_HDD_ADAPTER_MAGIC != pAdapter->magic)
-    {
-        VOS_TRACE(VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
-                    "%s: Invalid pAdapter magic", __func__);
-        return VOS_STATUS_E_INVAL;
-    }
-
->>>>>>> eee6ad8... prima 3.2.3.178 caf
     pHddCtx = (hdd_context_t*)(pAdapter->pHddCtx);
     //Clear station in TL and then update HDD data structures. This helps 
     //to block RX frames from other station to this station.
@@ -1728,18 +1706,3 @@ VOS_STATUS hdd_softap_GetStaId(hdd_adapter_t *pAdapter, v_MACADDR_t *pMacAddress
     return VOS_STATUS_E_FAILURE;
 }
 
-VOS_STATUS hdd_softap_GetConnectedStaId(hdd_adapter_t *pAdapter, v_U8_t *staId)
-{
-    v_U8_t i;
-
-    for (i = 0; i < WLAN_MAX_STA_COUNT; i++)
-    {
-        if (pAdapter->aStaInfo[i].isUsed)
-        {
-            *staId = i;
-            return VOS_STATUS_SUCCESS;
-        }
-    }
-
-    return VOS_STATUS_E_FAILURE;
-}

@@ -666,10 +666,6 @@ typedef struct sAniSirLim
     tLimAdmitPolicyInfo admitPolicyInfo;
     vos_lock_t lkPeGlobalLock;
     tANI_U8 disableLDPCWithTxbfAP;
-#ifdef FEATURE_WLAN_TDLS
-    tANI_U8 gLimTDLSBufStaEnabled;
-    tANI_U8 gLimTDLSUapsdMask;
-#endif
 
 
 
@@ -921,8 +917,6 @@ tLimMlmOemDataRsp       *gpLimMlmOemDataRsp;
     tLimDisassocDeauthCnfReq limDisassocDeauthCnfReq;
     tANI_U8 deferredMsgCnt;
     tSirDFSChannelList    dfschannelList;
-    tANI_U8 deauthMsgCnt;
-    tANI_U8 gLimIbssStaLimit;
 } tAniSirLim, *tpAniSirLim;
 
 typedef struct sLimMgmtFrameRegistration
@@ -1068,7 +1062,7 @@ typedef struct sAniSirGlobal
 #ifdef FEATURE_WLAN_TDLS
     v_BOOL_t isTdlsPowerSaveProhibited;
 #endif
-    tANI_U8 fScanOffload;
+    
 } tAniSirGlobal;
 
 #ifdef FEATURE_WLAN_TDLS

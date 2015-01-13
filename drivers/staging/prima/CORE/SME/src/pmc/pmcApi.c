@@ -18,14 +18,6 @@
   * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
   * PERFORMANCE OF THIS SOFTWARE.
 */
-<<<<<<< HEAD
-=======
-/*
-* Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
-* All Rights Reserved.
-* Qualcomm Atheros Confidential and Proprietary.
-*/
->>>>>>> eee6ad8... prima 3.2.3.178 caf
 
 /******************************************************************************
 *
@@ -33,13 +25,6 @@
 *
 * Description: Routines that make up the Power Management Control (PMC) API.
 *
-<<<<<<< HEAD
-=======
-* Copyright 2008 (c) Qualcomm Technologies, Inc.  
-* All Rights Reserved.
-* Qualcomm Technologies Confidential and Proprietary.
-*
->>>>>>> eee6ad8... prima 3.2.3.178 caf
 ******************************************************************************/
 
 #include "palTypes.h"
@@ -107,7 +92,7 @@ eHalStatus pmcOpen (tHalHandle hHal)
     palZeroMemory(pMac->hHdd, &(pMac->pmc.smpsConfig), sizeof(tPmcSmpsConfigParams));
 
     /* Allocate a timer to use with IMPS. */
-    if (vos_timer_init(&pMac->pmc.hImpsTimer, VOS_TIMER_TYPE_SW, pmcImpsTimerExpired, hHal) != VOS_STATUS_SUCCESS)
+    if (palTimerAlloc(pMac->hHdd, &pMac->pmc.hImpsTimer, pmcImpsTimerExpired, hHal) != eHAL_STATUS_SUCCESS)
     {
         smsLog(pMac, LOGE, FL("Cannot allocate timer for IMPS"));
         return eHAL_STATUS_FAILURE;
@@ -124,7 +109,7 @@ eHalStatus pmcOpen (tHalHandle hHal)
 
 #ifdef FEATURE_WLAN_DIAG_SUPPORT
     /* Allocate a timer used to report current PMC state through periodic DIAG event */
-    if (vos_timer_init(&pMac->pmc.hDiagEvtTimer, VOS_TIMER_TYPE_SW, pmcDiagEvtTimerExpired, hHal) != VOS_STATUS_SUCCESS)
+    if (palTimerAlloc(pMac->hHdd, &pMac->pmc.hDiagEvtTimer, pmcDiagEvtTimerExpired, hHal) != eHAL_STATUS_SUCCESS)
     {
         smsLog(pMac, LOGE, FL("Cannot allocate timer for diag event reporting"));
         return eHAL_STATUS_FAILURE;
@@ -136,8 +121,8 @@ eHalStatus pmcOpen (tHalHandle hHal)
     pMac->pmc.bmpsConfig.bmpsPeriod = WNI_CFG_LISTEN_INTERVAL_STADEF;
 
     /* Allocate a timer used to schedule a deferred power save mode exit. */
-    if (vos_timer_init(&pMac->pmc.hExitPowerSaveTimer, VOS_TIMER_TYPE_SW,
-                      pmcExitPowerSaveTimerExpired, hHal) !=VOS_STATUS_SUCCESS)
+    if (palTimerAlloc(pMac->hHdd, &pMac->pmc.hExitPowerSaveTimer,
+                      pmcExitPowerSaveTimerExpired, hHal) != eHAL_STATUS_SUCCESS)
     {
         smsLog(pMac, LOGE, FL("Cannot allocate exit power save mode timer"));
         PMC_ABORT;
@@ -297,7 +282,7 @@ eHalStatus pmcStop (tHalHandle hHal)
     smsLog(pMac, LOG2, FL("Entering pmcStop"));
 
     /* Cancel any running timers. */
-    if (vos_timer_stop(&pMac->pmc.hImpsTimer) != VOS_STATUS_SUCCESS)
+    if (palTimerStop(pMac->hHdd, pMac->pmc.hImpsTimer) != eHAL_STATUS_SUCCESS)
     {
         smsLog(pMac, LOGE, FL("Cannot cancel IMPS timer"));
     }
@@ -308,7 +293,7 @@ eHalStatus pmcStop (tHalHandle hHal)
     pmcStopDiagEvtTimer(hHal);
 #endif
 
-    if (vos_timer_stop(&pMac->pmc.hExitPowerSaveTimer) != VOS_STATUS_SUCCESS)
+    if (palTimerStop(pMac->hHdd, pMac->pmc.hExitPowerSaveTimer) != eHAL_STATUS_SUCCESS)
     {
         smsLog(pMac, LOGE, FL("Cannot cancel exit power save mode timer"));
     }
@@ -359,7 +344,7 @@ eHalStatus pmcClose (tHalHandle hHal)
     smsLog(pMac, LOG2, FL("Entering pmcClose"));
 
     /* Free up allocated resources. */
-    if (vos_timer_destroy(&pMac->pmc.hImpsTimer) != VOS_STATUS_SUCCESS)
+    if (palTimerFree(pMac->hHdd, pMac->pmc.hImpsTimer) != eHAL_STATUS_SUCCESS)
     {
         smsLog(pMac, LOGE, FL("Cannot deallocate IMPS timer"));
     }
@@ -367,18 +352,13 @@ eHalStatus pmcClose (tHalHandle hHal)
     {
         smsLog(pMac, LOGE, FL("Cannot deallocate traffic timer"));
     }
-<<<<<<< HEAD
 #ifdef FEATURE_WLAN_DIAG_SUPPORT
     if (palTimerFree(pMac->hHdd, pMac->pmc.hDiagEvtTimer) != eHAL_STATUS_SUCCESS)
-=======
-#ifdef FEATURE_WLAN_DIAG_SUPPORT    
-    if (vos_timer_destroy(&pMac->pmc.hDiagEvtTimer) != VOS_STATUS_SUCCESS)
->>>>>>> eee6ad8... prima 3.2.3.178 caf
     {
         smsLog(pMac, LOGE, FL("Cannot deallocate timer for diag event reporting"));
     }
 #endif
-    if (vos_timer_destroy(&pMac->pmc.hExitPowerSaveTimer) != VOS_STATUS_SUCCESS)
+    if (palTimerFree(pMac->hHdd, pMac->pmc.hExitPowerSaveTimer) != eHAL_STATUS_SUCCESS)
     {
         smsLog(pMac, LOGE, FL("Cannot deallocate exit power save mode timer"));
     }
@@ -1051,10 +1031,12 @@ eHalStatus pmcRequestFullPower (tHalHandle hHal, void (*callbackRoutine) (void *
 
     /* If in IMPS State, then cancel the timer. */
     if (pMac->pmc.pmcState == IMPS)
-        if (vos_timer_stop(&pMac->pmc.hImpsTimer) != VOS_STATUS_SUCCESS)
+        if (palTimerStop(pMac->hHdd, pMac->pmc.hImpsTimer) != eHAL_STATUS_SUCCESS)
         {
             smsLog(pMac, LOGE, FL("Cannot cancel IMPS timer"));
+            return eHAL_STATUS_FAILURE;
         }
+
     /* Enter Request Full Power State. */
     if (pmcEnterRequestFullPowerState(hHal, fullPowerReason) != eHAL_STATUS_SUCCESS)
         return eHAL_STATUS_FAILURE;
@@ -2200,10 +2182,8 @@ eHalStatus pmcWowlAddBcastPattern (
            pmcGetPmcStateStr(pMac->pmc.pmcState));
         return eHAL_STATUS_FAILURE;
     }
-
     if( pMac->pmc.pmcState == IMPS || pMac->pmc.pmcState == REQUEST_IMPS )
     {
-<<<<<<< HEAD
         eHalStatus status;
         vos_mem_copy(pattern->bssId, pSession->connectedProfile.bssid, sizeof(tSirMacAddr));
         //Wake up the chip first
@@ -2223,21 +2203,7 @@ eHalStatus pmcWowlAddBcastPattern (
             }
             //else let it through because it is in full power state
         }
-=======
-        smsLog(pMac, LOGE, FL("Cannot add WoWL Pattern as chip is in %s state"),
-           pmcGetPmcStateStr(pMac->pmc.pmcState));
-        return eHAL_STATUS_FAILURE;
     }
-
-    if( !csrIsConnStateConnected(pMac, sessionId) )
-    {
-        smsLog(pMac, LOGE, FL("Cannot add WoWL Pattern session in %d state"),
-           pSession->connectState);
-        return eHAL_STATUS_FAILURE;
->>>>>>> eee6ad8... prima 3.2.3.178 caf
-    }
-
-    vos_mem_copy(pattern->bssId, pSession->connectedProfile.bssid, sizeof(tSirMacAddr));
 
     if (pmcSendMessage(hHal, eWNI_PMC_WOWL_ADD_BCAST_PTRN, pattern, sizeof(tSirWowlAddBcastPtrn))
         != eHAL_STATUS_SUCCESS)
@@ -2298,12 +2264,11 @@ eHalStatus pmcWowlDelBcastPattern (
         return eHAL_STATUS_FAILURE;
     }
 
-    vos_mem_copy(pattern->bssId, pSession->connectedProfile.bssid, sizeof(tSirMacAddr));
-
     if( pMac->pmc.pmcState == IMPS || pMac->pmc.pmcState == REQUEST_IMPS )
     {
         eHalStatus status;
 
+        vos_mem_copy(pattern->bssId, pSession->connectedProfile.bssid, sizeof(tSirMacAddr));
         //Wake up the chip first
         status = pmcDeferMsg( pMac, eWNI_PMC_WOWL_DEL_BCAST_PTRN,
                                     pattern, sizeof(tSirWowlDelBcastPtrn) );
@@ -2409,12 +2374,9 @@ eHalStatus pmcEnterWowl (
        return eHAL_STATUS_FAILURE;
    }
 
-<<<<<<< HEAD
    vos_mem_copy(wowlEnterParams->bssId, pSession->connectedProfile.bssid,
                sizeof(tSirMacAddr));
 
-=======
->>>>>>> eee6ad8... prima 3.2.3.178 caf
    if( !PMC_IS_READY(pMac) )
    {
        smsLog(pMac, LOGE, FL("Requesting WoWL when PMC not ready"));
@@ -2460,9 +2422,6 @@ eHalStatus pmcEnterWowl (
              "will not be accepted");
       return eHAL_STATUS_FAILURE;
    }
-
-   vos_mem_copy(wowlEnterParams->bssId, pSession->connectedProfile.bssid,
-               sizeof(tSirMacAddr));
 
    // To avoid race condition, set callback routines before sending message.
    /* cache the WOWL information */
@@ -2817,7 +2776,7 @@ pmcPopulateMacHeader( tpAniSirGlobal pMac,
                       tANI_U8* pBD,
                       tANI_U8 type,
                       tANI_U8 subType,
-                      tSirMacAddr peerAddr,
+                      tSirMacAddr peerAddr ,
                       tSirMacAddr selfMacAddr)
 {
     tSirRetStatus   statusCode = eSIR_SUCCESS;
@@ -2908,7 +2867,7 @@ pmcPrepareProbeReqTemplate(tpAniSirGlobal pMac,
 
     // Next, we fill out the buffer descriptor:
     nSirStatus = pmcPopulateMacHeader( pMac, pFrame, SIR_MAC_MGMT_FRAME,
-                                SIR_MAC_MGMT_PROBE_REQ, bssId,selfMacAddr);
+                                SIR_MAC_MGMT_PROBE_REQ, bssId ,selfMacAddr);
 
     if ( eSIR_SUCCESS != nSirStatus )
     {
@@ -2930,11 +2889,7 @@ pmcPrepareProbeReqTemplate(tpAniSirGlobal pMac,
     }
     else if ( DOT11F_WARNED( nStatus ) )
     {
-<<<<<<< HEAD
         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-=======
-        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
->>>>>>> eee6ad8... prima 3.2.3.178 caf
             "There were warnings while packing a Probe Request" );
     }
 
@@ -3152,11 +3107,7 @@ eHalStatus pmcGetFilterMatchCount
     tpAniSirGlobal          pMac = PMAC_STRUCT(hHal);
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
 
-<<<<<<< HEAD
     VOS_TRACE( VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
-=======
-    VOS_TRACE( VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO, 
->>>>>>> eee6ad8... prima 3.2.3.178 caf
         "%s", __func__);
 
     if(NULL == pSession )
