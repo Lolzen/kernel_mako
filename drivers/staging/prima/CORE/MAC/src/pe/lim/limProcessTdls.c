@@ -2521,7 +2521,6 @@ limTdlsPopulateMatchingRateSet(tpAniSirGlobal pMac,
     {
         /// Could not get rateset from CFG. Log error.
         limLog(pMac, LOGP, FL("could not retrieve rateset"));
-        val = 0;
     }
     tempRateSet.numRates = val;
 

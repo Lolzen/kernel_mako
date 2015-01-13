@@ -150,9 +150,7 @@ typedef struct sAniSirGlobal *tpAniSirGlobal;
 
 #define SPACE_ASCII_VALUE  32
 
-#ifdef FEATURE_WLAN_BATCH_SCAN
-#define EQUALS_TO_ASCII_VALUE (61)
-#endif
+#define SPACE_ASCII_VALUE  32
 
 // -------------------------------------------------------------------
 // Change channel generic scheme
