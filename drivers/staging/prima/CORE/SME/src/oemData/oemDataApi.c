@@ -174,9 +174,7 @@ eHalStatus oemData_OemDataReq(tHalHandle hHal,
         pMac->oemData.pContext = pContext;
         pMac->oemData.oemDataReqID = *(pOemDataReqID);
 
-        vos_mem_copy((v_VOID_t*)(pMac->oemData.oemDataReqConfig.oemDataReq),
-                     (v_VOID_t*)(oemDataReqConfig->oemDataReq),
-                     OEM_DATA_REQ_SIZE);
+        vos_mem_copy((v_VOID_t*)(pMac->oemData.oemDataReqConfig.oemDataReq), (v_VOID_t*)(oemDataReqConfig->oemDataReq), OEM_DATA_REQ_SIZE);
 
         pMac->oemData.oemDataReqActive = eANI_BOOLEAN_FALSE;
 
@@ -193,8 +191,7 @@ eHalStatus oemData_OemDataReq(tHalHandle hHal,
             //set the oem data request
             pOemDataCmd->u.oemDataCmd.oemDataReq.sessionId = pMac->oemData.oemDataReqConfig.sessionId;
             vos_mem_copy((v_VOID_t*)(pOemDataCmd->u.oemDataCmd.oemDataReq.oemDataReq),
-                                    (v_VOID_t*)(pMac->oemData.oemDataReqConfig.oemDataReq),
-                                    OEM_DATA_REQ_SIZE);
+                                    (v_VOID_t*)(pMac->oemData.oemDataReqConfig.oemDataReq), OEM_DATA_REQ_SIZE);
         }
         else
         {
@@ -236,20 +233,22 @@ eHalStatus oemData_SendMBOemDataReq(tpAniSirGlobal pMac, tOemDataReq *pOemDataRe
 
     msgLen = (tANI_U16)(sizeof(tSirOemDataReq));
 
-    pMsg = vos_mem_malloc(msgLen);
-    if ( NULL == pMsg )
-       status = eHAL_STATUS_FAILURE;
-    else
-       status = eHAL_STATUS_SUCCESS;
+    status = palAllocateMemory(pMac->hHdd, (void**)&pMsg, msgLen);
     if(HAL_STATUS_SUCCESS(status))
     {
-        vos_mem_set(pMsg, msgLen, 0);
+        palZeroMemory(pMac->hHdd, pMsg, msgLen);
         pMsg->messageType = pal_cpu_to_be16((tANI_U16)eWNI_SME_OEM_DATA_REQ);
-        vos_mem_copy(pMsg->selfMacAddr, pSession->selfMacAddr, sizeof(tSirMacAddr) );
-        vos_mem_copy(pMsg->oemDataReq, pOemDataReq->oemDataReq, OEM_DATA_REQ_SIZE);
-
-        smsLog(pMac, LOGW, "OEM_DATA: sending message to pe%s", __func__);
-        status = palSendMBMessage(pMac->hHdd, pMsg);
+        palCopyMemory(pMac->hHdd, pMsg->selfMacAddr, pSession->selfMacAddr, sizeof(tSirMacAddr) );
+        status = palCopyMemory(pMac->hHdd, pMsg->oemDataReq, pOemDataReq->oemDataReq, OEM_DATA_REQ_SIZE);
+        if(HAL_STATUS_SUCCESS(status))
+        {
+            smsLog(pMac, LOGW, "OEM_DATA: sending message to pe%s", __func__);
+            status = palSendMBMessage(pMac->hHdd, pMsg);
+        }
+        else
+        {
+            palFreeMemory(pMac->hHdd, pMsg);
+        }
     }
 
     smsLog(pMac, LOGW, "OEM_DATA: exiting Function %s", __func__);
@@ -349,9 +348,7 @@ eHalStatus sme_HandleOemDataRsp(tHalHandle hHal, tANI_U8* pMsg)
                 }
 
                 smsLog(pMac, LOGE, "Before memory copy");
-                vos_mem_copy((v_VOID_t*)(pMac->oemData.pOemDataRsp),
-                             (v_VOID_t*)(&pOemDataRsp->oemDataRsp),
-                             sizeof(tOemDataRsp));
+                vos_mem_copy((v_VOID_t*)(pMac->oemData.pOemDataRsp), (v_VOID_t*)(&pOemDataRsp->oemDataRsp), sizeof(tOemDataRsp));
                 smsLog(pMac, LOGE, "after memory copy");
                 sme_ReleaseGlobalLock(&pMac->sme);
             }

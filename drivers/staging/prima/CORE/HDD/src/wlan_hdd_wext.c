@@ -131,6 +131,13 @@ int hdd_setBand_helper(struct net_device *dev, tANI_U8* ptr);
 static int ioctl_debug;
 module_param(ioctl_debug, int, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
+struct statsContext
+{
+   struct completion completion;
+   hdd_adapter_t *pAdapter;
+   unsigned int magic;
+};
+
 #define STATS_CONTEXT_MAGIC 0x53544154   //STAT
 #define RSSI_CONTEXT_MAGIC  0x52535349   //RSSI
 #define POWER_CONTEXT_MAGIC 0x504F5752   //POWR
@@ -2513,7 +2520,7 @@ static int iw_get_linkspeed(struct net_device *dev,
 
    wrqu->data.length = len;
    // return the linkspeed in the format required by the WiFi Framework
-   rc = snprintf(pLinkSpeed, len, "%u", link_speed);
+   rc = snprintf(pLinkSpeed, len, "%lu", link_speed);
    if ((rc < 0) || (rc >= len))
    {
        // encoding or length error?
@@ -3032,7 +3039,7 @@ static int iw_set_priv(struct net_device *dev,
                return VOS_STATUS_E_FAILURE;
         }
 
-        if (4 != sscanf(ptr,"%hhu %hhu %hhu %u",
+        if (4 != sscanf(ptr,"%hhu %hhu %hhu %lu",
                         &(tTxPerTrackingParam.ucTxPerTrackingEnable),
                         &(tTxPerTrackingParam.ucTxPerTrackingPeriod),
                         &(tTxPerTrackingParam.ucTxPerTrackingRatio),
@@ -6162,7 +6169,6 @@ void wlan_hdd_set_mc_addr_list(hdd_adapter_t *pAdapter, v_U8_t set)
 
         }
         pAdapter->mc_addr_list.isFilterApplied = set ? TRUE : FALSE;
-        vos_mem_free(pMulticastAddrs);
     }
     else
     {
@@ -6524,7 +6530,7 @@ VOS_STATUS iw_set_pno(struct net_device *dev, struct iw_request_info *info,
            pnoRequest.aNetworks[i].ssId.length);
     ptr += pnoRequest.aNetworks[i].ssId.length;
 
-    ucParams = sscanf(ptr,"%u %u %hhu %n",
+    ucParams = sscanf(ptr,"%lu %lu %hhu %n",
                       &(pnoRequest.aNetworks[i].authentication),
                       &(pnoRequest.aNetworks[i].encryption),
                       &(pnoRequest.aNetworks[i].ucChannelCount),
@@ -6580,7 +6586,7 @@ VOS_STATUS iw_set_pno(struct net_device *dev, struct iw_request_info *info,
       }
     }
 
-    if (1 != sscanf(ptr,"%u %n",
+    if (1 != sscanf(ptr,"%lu %n",
                     &(pnoRequest.aNetworks[i].bcastNetwType),
                     &nOffset))
     {
@@ -6637,7 +6643,7 @@ VOS_STATUS iw_set_pno(struct net_device *dev, struct iw_request_info *info,
 
      for ( i = 0; i < pnoRequest.scanTimers.ucScanTimersCount; i++ )
      {
-        ucParams = sscanf(ptr,"%u %u %n",
+        ucParams = sscanf(ptr,"%lu %lu %n",
            &(pnoRequest.scanTimers.aTimerValues[i].uTimerValue),
            &( pnoRequest.scanTimers.aTimerValues[i].uTimerRepeat),
            &nOffset);
@@ -6967,7 +6973,7 @@ VOS_STATUS iw_set_power_params(struct net_device *dev, struct iw_request_info *i
 
     ptr += nOffset;
 
-    if (1 != sscanf(ptr,"%u %n", &(uValue), &nOffset))
+    if (1 != sscanf(ptr,"%lu %n", &(uValue), &nOffset))
     {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                   "Invalid input parameter value %s",ptr);

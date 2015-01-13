@@ -1731,8 +1731,7 @@ VOS_STATUS hdd_softap_GetConnectedStaId(hdd_adapter_t *pAdapter, v_U8_t *staId)
 
     for (i = 0; i < WLAN_MAX_STA_COUNT; i++)
     {
-        if (pAdapter->aStaInfo[i].isUsed &&
-            (!vos_is_macaddr_broadcast(&pAdapter->aStaInfo[i].macAddrSTA)))
+        if (pAdapter->aStaInfo[i].isUsed)
         {
             *staId = i;
             return VOS_STATUS_SUCCESS;

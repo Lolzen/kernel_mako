@@ -96,9 +96,9 @@ eHalStatus pmcOpen (tHalHandle hHal)
     pMac->pmc.wowlEnabled = TRUE;
     pMac->pmc.rfSuppliesVotedOff= FALSE;
 
-    vos_mem_set(&(pMac->pmc.bmpsConfig), sizeof(tPmcBmpsConfigParams), 0);
-    vos_mem_set(&(pMac->pmc.impsConfig), sizeof(tPmcImpsConfigParams), 0);
-    vos_mem_set(&(pMac->pmc.smpsConfig), sizeof(tPmcSmpsConfigParams), 0);
+    palZeroMemory(pMac->hHdd, &(pMac->pmc.bmpsConfig), sizeof(tPmcBmpsConfigParams));
+    palZeroMemory(pMac->hHdd, &(pMac->pmc.impsConfig), sizeof(tPmcImpsConfigParams));
+    palZeroMemory(pMac->hHdd, &(pMac->pmc.smpsConfig), sizeof(tPmcSmpsConfigParams));
 
     /* Allocate a timer to use with IMPS. */
     if (vos_timer_init(&pMac->pmc.hImpsTimer, VOS_TIMER_TYPE_SW, pmcImpsTimerExpired, hHal) != VOS_STATUS_SUCCESS)
@@ -319,7 +319,7 @@ eHalStatus pmcStop (tHalHandle hHal)
     while( NULL != ( pEntry = csrLLRemoveHead( &pMac->pmc.deferredMsgList, eANI_BOOLEAN_FALSE ) ) )
     {
         pDeferredMsg = GET_BASE_ADDR( pEntry, tPmcDeferredMsg, link );
-        vos_mem_free(pDeferredMsg);
+        palFreeMemory( pMac->hHdd, pDeferredMsg );
     }
     csrLLUnlock( &pMac->pmc.deferredMsgList );
 
@@ -1053,11 +1053,9 @@ eHalStatus pmcRequestFullPower (tHalHandle hHal, void (*callbackRoutine) (void *
     //If caller doesn't need a callback, simply waits up the chip.
     if( callbackRoutine )
     {
-        pEntry = vos_mem_malloc(sizeof(tRequestFullPowerEntry));
-        if ( NULL == pEntry )
+        if (palAllocateMemory(pMac->hHdd, (void **)&pEntry, sizeof(tRequestFullPowerEntry)) != eHAL_STATUS_SUCCESS)
         {
-            pmcLog(pMac, LOGE,
-                   FL("Cannot allocate memory for request full power routine list entry"));
+            pmcLog(pMac, LOGE, FL("Cannot allocate memory for request full power routine list entry"));
             PMC_ABORT;
             return eHAL_STATUS_FAILURE;
         }
@@ -1177,8 +1175,7 @@ eHalStatus pmcRegisterPowerSaveCheck (tHalHandle hHal, tANI_BOOLEAN (*checkRouti
     pmcLog(pMac, LOG2, FL("Entering pmcRegisterPowerSaveCheck"));
 
     /* Allocate entry for power save check routine list. */
-    pEntry = vos_mem_malloc(sizeof(tPowerSaveCheckEntry));
-    if ( NULL == pEntry )
+    if (palAllocateMemory(pMac->hHdd, (void **)&pEntry, sizeof(tPowerSaveCheckEntry)) != eHAL_STATUS_SUCCESS)
     {
         pmcLog(pMac, LOGE, FL("Cannot allocate memory for power save check routine list entry"));
         PMC_ABORT;
@@ -1231,7 +1228,12 @@ eHalStatus pmcDeregisterPowerSaveCheck (tHalHandle hHal, tANI_BOOLEAN (*checkRou
         {
             if (csrLLRemoveEntry(&pMac->pmc.powerSaveCheckList, pEntry, FALSE))
             {
-                vos_mem_free(pPowerSaveCheckEntry);
+                if (palFreeMemory(pMac->hHdd, pPowerSaveCheckEntry) != eHAL_STATUS_SUCCESS)
+                {
+                    pmcLog(pMac, LOGE, FL("Cannot free memory for power save check routine list entry"));
+                    PMC_ABORT;
+                    return eHAL_STATUS_FAILURE;
+                }
             }
             else
             {
@@ -1752,8 +1754,9 @@ eHalStatus pmcRequestBmps (
 
          /* If able to enter Request BMPS State, then request is pending.
             Allocate entry for request BMPS callback routine list. */
-         pEntry = vos_mem_malloc(sizeof(tRequestBmpsEntry));
-         if ( NULL == pEntry )
+         if (palAllocateMemory(
+               pMac->hHdd, (void **)&pEntry,
+               sizeof(tRequestBmpsEntry)) != eHAL_STATUS_SUCCESS)
          {
             pmcLog(pMac, LOGE, "PMC: cannot allocate memory for request "
                   "BMPS routine list entry");
@@ -1875,8 +1878,8 @@ eHalStatus pmcStartUapsd (
    if( NULL != callbackRoutine )
    {
       /* If success then request is pending. Allocate entry for callback routine list. */
-      pEntry = vos_mem_malloc(sizeof(tStartUapsdEntry));
-      if ( NULL == pEntry )
+      if (palAllocateMemory(pMac->hHdd, (void **)&pEntry,
+            sizeof(tStartUapsdEntry)) != eHAL_STATUS_SUCCESS)
       {
          pmcLog(pMac, LOGE, "PMC: cannot allocate memory for request "
             "start UAPSD routine list entry");
@@ -2032,8 +2035,7 @@ extern eHalStatus pmcRegisterDeviceStateUpdateInd (tHalHandle hHal,
     pmcLog(pMac, LOG2, FL("Entering pmcRegisterDeviceStateUpdateInd"));
 
     /* Allocate entry for device power state update indication. */
-    pEntry = vos_mem_malloc(sizeof(tDeviceStateUpdateIndEntry));
-    if ( NULL == pEntry )
+    if (palAllocateMemory(pMac->hHdd, (void **)&pEntry, sizeof(tDeviceStateUpdateIndEntry)) != eHAL_STATUS_SUCCESS)
     {
         pmcLog(pMac, LOGE, FL("Cannot allocate memory for device power state update indication"));
         PMC_ABORT;
@@ -2081,7 +2083,12 @@ eHalStatus pmcDeregisterDeviceStateUpdateInd (tHalHandle hHal,
                 pmcLog(pMac, LOGE, FL("Cannot remove device state update ind entry from list"));
                 return eHAL_STATUS_FAILURE;
             }
-            vos_mem_free(pDeviceStateUpdateIndEntry);
+            if (palFreeMemory(pMac->hHdd, pDeviceStateUpdateIndEntry) != eHAL_STATUS_SUCCESS)
+            {
+                pmcLog(pMac, LOGE, FL("Cannot free memory for device state update ind routine list entry"));
+                PMC_ABORT;
+                return eHAL_STATUS_FAILURE;
+            }
             return eHAL_STATUS_SUCCESS;
         }
         pEntry = csrLLNext(&pMac->pmc.deviceStateUpdateIndList, pEntry, FALSE);
@@ -2169,11 +2176,9 @@ eHalStatus pmcWowlAddBcastPattern (
        log_ptr->pattern_size = pattern->ucPatternSize;
        log_ptr->pattern_mask_size = pattern->ucPatternMaskSize;
 
-       vos_mem_copy(log_ptr->pattern, pattern->ucPattern,
-                    SIR_WOWL_BCAST_PATTERN_MAX_SIZE);
+       vos_mem_copy(log_ptr->pattern, pattern->ucPattern, SIR_WOWL_BCAST_PATTERN_MAX_SIZE);
        /* 1 bit in the pattern mask denotes 1 byte of pattern hence pattern mask size is 1/8 */
-       vos_mem_copy(log_ptr->pattern_mask, pattern->ucPatternMask,
-                    SIR_WOWL_BCAST_PATTERN_MAX_SIZE >> 3);
+       vos_mem_copy(log_ptr->pattern_mask, pattern->ucPatternMask, SIR_WOWL_BCAST_PATTERN_MAX_SIZE >> 3);
     }
 
     WLAN_VOS_DIAG_LOG_REPORT(log_ptr);
@@ -2274,8 +2279,6 @@ eHalStatus pmcWowlDelBcastPattern (
     {
         eHalStatus status;
 
-        vos_mem_copy(pattern->bssId, pSession->connectedProfile.bssid,
-                     sizeof(tSirMacAddr));
         //Wake up the chip first
         status = pmcDeferMsg( pMac, eWNI_PMC_WOWL_DEL_BCAST_PTRN, 
                                     pattern, sizeof(tSirWowlDelBcastPtrn) );
@@ -2363,8 +2366,7 @@ eHalStatus pmcEnterWowl (
    if(wowlEnterParams->ucMagicPktEnable)
    {
        wowRequest.wow_type |= 1;
-       vos_mem_copy(wowRequest.wow_magic_pattern,
-                   (tANI_U8 *)wowlEnterParams->magicPtrn, 6);
+       vos_mem_copy(wowRequest.wow_magic_pattern, (tANI_U8 *)wowlEnterParams->magicPtrn, 6);
    }
 
    if(wowlEnterParams->ucPatternFilteringEnable)
@@ -2526,8 +2528,7 @@ eHalStatus pmcSetHostOffload (tHalHandle hHal, tpSirHostOffloadReq pRequest,
         return eHAL_STATUS_FAILED_ALLOC;
     }
 
-    vos_mem_copy(pRequest->bssId, pSession->connectedProfile.bssid,
-                 sizeof(tSirMacAddr));
+    vos_mem_copy(pRequest->bssId, pSession->connectedProfile.bssid, sizeof(tSirMacAddr));
 
     vos_mem_copy(pRequestBuf, pRequest, sizeof(tSirHostOffloadReq));
 
@@ -2661,7 +2662,12 @@ void pmcClosePowerSaveCheckList(tpAniSirGlobal pMac)
     while ( (pEntry = csrLLRemoveHead(&pMac->pmc.powerSaveCheckList, FALSE)) )
     {
         pPowerSaveCheckEntry = GET_BASE_ADDR(pEntry, tPowerSaveCheckEntry, link);
-        vos_mem_free(pPowerSaveCheckEntry);
+        if (palFreeMemory(pMac->hHdd, pPowerSaveCheckEntry) != eHAL_STATUS_SUCCESS)
+        {
+            pmcLog(pMac, LOGE, FL("Cannot free memory "));
+            PMC_ABORT;
+            break;
+        }
     }
     csrLLUnlock(&pMac->pmc.powerSaveCheckList);
     csrLLClose(&pMac->pmc.powerSaveCheckList);
@@ -2677,7 +2683,12 @@ void pmcCloseRequestFullPowerList(tpAniSirGlobal pMac)
     while ( (pEntry = csrLLRemoveHead(&pMac->pmc.requestFullPowerList, FALSE)) )
     {
         pRequestFullPowerEntry = GET_BASE_ADDR(pEntry, tRequestFullPowerEntry, link);
-        vos_mem_free(pRequestFullPowerEntry);
+        if (palFreeMemory(pMac->hHdd, pRequestFullPowerEntry) != eHAL_STATUS_SUCCESS)
+        {
+            pmcLog(pMac, LOGE, FL("Cannot free memory "));
+            PMC_ABORT;
+            break;
+        }
     }
     csrLLUnlock(&pMac->pmc.requestFullPowerList);
     csrLLClose(&pMac->pmc.requestFullPowerList);
@@ -2693,7 +2704,12 @@ void pmcCloseRequestBmpsList(tpAniSirGlobal pMac)
     while ( (pEntry = csrLLRemoveHead(&pMac->pmc.requestBmpsList, FALSE)) )
     {
         pRequestBmpsEntry = GET_BASE_ADDR(pEntry, tRequestBmpsEntry, link);
-        vos_mem_free(pRequestBmpsEntry);
+        if (palFreeMemory(pMac->hHdd, pRequestBmpsEntry) != eHAL_STATUS_SUCCESS)
+        {
+            pmcLog(pMac, LOGE, FL("Cannot free memory "));
+            PMC_ABORT;
+            break;
+        }
     }
     csrLLUnlock(&pMac->pmc.requestBmpsList);
     csrLLClose(&pMac->pmc.requestBmpsList);
@@ -2709,7 +2725,12 @@ void pmcCloseRequestStartUapsdList(tpAniSirGlobal pMac)
     while ( (pEntry = csrLLRemoveHead(&pMac->pmc.requestStartUapsdList, FALSE)) )
     {
         pStartUapsdEntry = GET_BASE_ADDR(pEntry, tStartUapsdEntry, link);
-        vos_mem_free(pStartUapsdEntry);
+        if (palFreeMemory(pMac->hHdd, pStartUapsdEntry) != eHAL_STATUS_SUCCESS)
+        {
+            pmcLog(pMac, LOGE, FL("Cannot free memory "));
+            PMC_ABORT;
+            break;
+        }
     }
     csrLLUnlock(&pMac->pmc.requestStartUapsdList);
     csrLLClose(&pMac->pmc.requestStartUapsdList);
@@ -2725,7 +2746,12 @@ void pmcCloseDeviceStateUpdateList(tpAniSirGlobal pMac)
     while ( (pEntry = csrLLRemoveHead(&pMac->pmc.deviceStateUpdateIndList, FALSE)) )
     {
         pDeviceStateUpdateIndEntry = GET_BASE_ADDR(pEntry, tDeviceStateUpdateIndEntry, link);
-        vos_mem_free(pDeviceStateUpdateIndEntry);
+        if (palFreeMemory(pMac->hHdd, pDeviceStateUpdateIndEntry) != eHAL_STATUS_SUCCESS)
+        {
+            pmcLog(pMac, LOGE, FL("Cannot free memory "));
+            PMC_ABORT;
+            break;
+        }
     }
     csrLLUnlock(&pMac->pmc.deviceStateUpdateIndList);
     csrLLClose(&pMac->pmc.deviceStateUpdateIndList);
@@ -2741,7 +2767,12 @@ void pmcCloseDeferredMsgList(tpAniSirGlobal pMac)
     while ( (pEntry = csrLLRemoveHead(&pMac->pmc.deferredMsgList, FALSE)) )
     {
         pDeferredMsg = GET_BASE_ADDR(pEntry, tPmcDeferredMsg, link);
-        vos_mem_free(pDeferredMsg);
+        if (palFreeMemory(pMac->hHdd, pDeferredMsg) != eHAL_STATUS_SUCCESS)
+        {
+            pmcLog(pMac, LOGE, FL("Cannot free memory "));
+            PMC_ABORT;
+            break;
+        }
     }
     csrLLUnlock(&pMac->pmc.deferredMsgList);
     csrLLClose(&pMac->pmc.deferredMsgList);
@@ -2770,12 +2801,18 @@ pmcPopulateMacHeader( tpAniSirGlobal pMac,
     pMacHdr->fc.subType = subType;
 
     // Prepare Address 1
-    vos_mem_copy((tANI_U8 *) pMacHdr->da, (tANI_U8 *) peerAddr, sizeof( tSirMacAddr ));
+    palCopyMemory( pMac->hHdd,
+                   (tANI_U8 *) pMacHdr->da,
+                   (tANI_U8 *) peerAddr,
+                   sizeof( tSirMacAddr ));
 
     sirCopyMacAddr(pMacHdr->sa,selfMacAddr);
 
     // Prepare Address 3
-    vos_mem_copy((tANI_U8 *) pMacHdr->bssId, (tANI_U8 *) peerAddr, sizeof( tSirMacAddr ));
+    palCopyMemory( pMac->hHdd,
+                   (tANI_U8 *) pMacHdr->bssId,
+                   (tANI_U8 *) peerAddr,
+                   sizeof( tSirMacAddr ));
     return statusCode;
 } /*** pmcPopulateMacHeader() ***/
 
@@ -2798,7 +2835,7 @@ pmcPrepareProbeReqTemplate(tpAniSirGlobal pMac,
     // The scheme here is to fill out a 'tDot11fProbeRequest' structure
     // and then hand it off to 'dot11fPackProbeRequest' (for
     // serialization).  We start by zero-initializing the structure:
-    vos_mem_set(( tANI_U8* )&pr, sizeof( pr ), 0);
+    palZeroMemory( pMac->hHdd, ( tANI_U8* )&pr, sizeof( pr ) );
 
     PopulateDot11fSuppRates( pMac, nChannelNum, &pr.SuppRates,NULL);
 
@@ -2836,7 +2873,7 @@ pmcPrepareProbeReqTemplate(tpAniSirGlobal pMac,
     nBytes = nPayload + sizeof( tSirMacMgmtHdr );
   
     /* Prepare outgoing frame*/
-    vos_mem_set(pFrame, nBytes, 0);
+    palZeroMemory( pMac->hHdd, pFrame, nBytes );
 
     // Next, we fill out the buffer descriptor:
     nSirStatus = pmcPopulateMacHeader( pMac, pFrame, SIR_MAC_MGMT_FRAME,
@@ -3147,8 +3184,7 @@ eHalStatus pmcGetFilterMatchCount
         return eHAL_STATUS_FAILED_ALLOC;
     }
 
-    vos_mem_copy(pRequestBuf->bssId, pSession->connectedProfile.bssid,
-                 sizeof(tSirMacAddr));
+    vos_mem_copy(pRequestBuf->bssId, pSession->connectedProfile.bssid, sizeof(tSirMacAddr)); 
 
     msg.type = WDA_PACKET_COALESCING_FILTER_MATCH_COUNT_REQ;
     msg.reserved = 0;
@@ -3216,8 +3252,7 @@ eHalStatus pmcSetGTKOffload (tHalHandle hHal, tpSirGtkOffloadParams pGtkOffload,
         return eHAL_STATUS_FAILED_ALLOC;
     }
 
-    vos_mem_copy(pGtkOffload->bssId, pSession->connectedProfile.bssid,
-                 sizeof(tSirMacAddr));
+    vos_mem_copy(pGtkOffload->bssId, pSession->connectedProfile.bssid, sizeof(tSirMacAddr)); 
 
     vos_mem_copy(pRequestBuf, pGtkOffload, sizeof(tSirGtkOffloadParams));
 

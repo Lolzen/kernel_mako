@@ -690,12 +690,6 @@ char *limMsgStr(tANI_U32 msgType)
             return "eWNI_PMC_EXIT_BMPS_IND";
         case eWNI_SME_SET_BCN_FILTER_REQ:
             return "eWNI_SME_SET_BCN_FILTER_REQ";
-#if defined(FEATURE_WLAN_CCX) && defined(FEATURE_WLAN_CCX_UPLOAD)
-        case eWNI_SME_GET_TSM_STATS_REQ:
-            return "eWNI_SME_GET_TSM_STATS_REQ";
-        case eWNI_SME_GET_TSM_STATS_RSP:
-            return "eWNI_SME_GET_TSM_STATS_RSP";
-#endif /* FEATURE_WLAN_CCX && FEATURE_WLAN_CCX_UPLOAD */
         default:
             return "INVALID SME message";
     }
@@ -1092,11 +1086,11 @@ limCleanupMlm(tpAniSirGlobal pMac)
         tx_timer_deactivate(&pMac->lim.limTimers.gLimRemainOnChannelTimer);
         tx_timer_delete(&pMac->lim.limTimers.gLimRemainOnChannelTimer);
 
-#if defined(FEATURE_WLAN_CCX) && !defined(FEATURE_WLAN_CCX_UPLOAD)
+#ifdef FEATURE_WLAN_CCX
         // Deactivate and delete TSM
         tx_timer_deactivate(&pMac->lim.limTimers.gLimCcxTsmTimer);
         tx_timer_delete(&pMac->lim.limTimers.gLimCcxTsmTimer);
-#endif /* FEATURE_WLAN_CCX && !FEATURE_WLAN_CCX_UPLOAD */
+#endif
 
         tx_timer_deactivate(&pMac->lim.limTimers.gLimDisassocAckTimer);
         tx_timer_delete(&pMac->lim.limTimers.gLimDisassocAckTimer);
