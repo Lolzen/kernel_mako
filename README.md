@@ -18,14 +18,15 @@ branch: **android-5.0.1_r1**
 - Added mako_lolzen_defconfig
 - Added lolzen_tools
 
-[optimizations}: 
+[optimizations]: 
 ----------------
 - Krait optimizations
 - neon kernel mode (neon-vfpv4)
 - [CFLAGS]:
 	- -mtune=cortex-a15 
 	- -march=armv7-a 
-	- -mfpu=neon
+	- -mfpu=neon-vfpv4
+	- -ffast-math
 	- -O3
 	- -funsafe-math-optimization
 	- -fgraphite-identity -floop-interchange -floop-block
