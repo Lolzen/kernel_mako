@@ -22,7 +22,7 @@ branch: **android-5.0.1_r1**
 ----------------
 - Krait optimizations
 - neon kernel mode (neon-vfpv4)
-- [CFLAGS]:
+- CFLAGS:
 	- -mtune=cortex-a15 
 	- -march=armv7-a 
 	- -mfpu=neon-vfpv4
@@ -42,11 +42,13 @@ branch: **android-5.0.1_r1**
 - usb host mode (USB OTG) [Note: No framework changes, recommended app: StickMount)
 
 [Thanks to]
+-----------
 - Google
 - The Linux Foundation
 - The community for shared patches
 
 [ToDo]
+------
 - DT2W
 - msm_thermal drivers
 - Init.d support
