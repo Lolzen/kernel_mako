@@ -49,7 +49,7 @@ else
 mv kernel.zip $drive_dir/myKernel/lolzen-$(date +%y-%m-%d)-$2.zip
 fi
 cd $drive_dir
-drive push
+drive push -no-prompt=true
 ;;
 -f | --fresh)
 kernel -d && kernel -c
