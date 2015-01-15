@@ -33,6 +33,14 @@ export CROSS_COMPILE=arm-linux-androideabi-
 make mako_lolzen_defconfig
 make -j$jobs
 ;;
+-m | --menuconfig)
+cd $kernel_src_dir
+export PATH=$PATH:$gcc_dir
+export ARCH=arm
+export SUBARCH=arm
+export CROSS_COMPILE=arm-linux-androideabi-
+make menuconfig
+;;
 -d | --delete)
 cd $kernel_src_dir
 make clean
@@ -70,8 +78,12 @@ echo '--number of jobs to use at compilation:'
 echo $jobs
 echo '#############################################################'
 echo 'USAGE: kernel [options]'
+echo '-f | --fresh'
+echo 'clean the kernel files and then compiles the kernel'
 echo '-c | --compile'
 echo 'compiles the kernel'
+echo '-m | --menuconfig
+echo 'create/modify the kernel config with menuconfig'
 echo '-d | --delete'
 echo 'delete anything compiled'
 echo '-z | --zip'
