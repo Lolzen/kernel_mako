@@ -82,7 +82,7 @@ echo '-f | --fresh'
 echo 'clean the kernel files and then compiles the kernel'
 echo '-c | --compile'
 echo 'compiles the kernel'
-echo '-m | --menuconfig
+echo '-m | --menuconfig'
 echo 'create/modify the kernel config with menuconfig'
 echo '-d | --delete'
 echo 'delete anything compiled'
