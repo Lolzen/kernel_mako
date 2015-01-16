@@ -375,15 +375,11 @@ KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs -O3 \
 		   -fno-delete-null-pointer-checks
 KBUILD_AFLAGS_KERNEL :=
 KBUILD_CFLAGS_KERNEL := -mtune=cortex-a15 -march=armv7-a -mfpu=neon-vfpv4 \
-			-ffast-math \
-			-funsafe-math-optimizations -fgraphite-identity \
-			-floop-interchange -floop-block
+			-ffast-math -funsafe-math-optimizations
 KBUILD_AFLAGS   := -D__ASSEMBLY__
 KBUILD_AFLAGS_MODULE  := -DMODULE
 KBUILD_CFLAGS_MODULE  := -DMODULE -mtune=cortex-a15 -march=armv7-a -mfpu=neon-vfpv4 \
-			 -ffast-math \
-			 -funsafe-math-optimizations -fgraphite-identity \
-			 -floop-interchange -floop-block
+			 -ffast-math -funsafe-math-optimizations
 KBUILD_LDFLAGS_MODULE := -T $(srctree)/scripts/module-common.lds
 
 # Read KERNELRELEASE from include/config/kernel.release (if it exists)
