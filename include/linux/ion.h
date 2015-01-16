@@ -511,7 +511,7 @@ struct ion_allocation_data {
 	size_t len;
 	size_t align;
 /* HACK: Kernel needs heap_mask, userspace needs heap_id_mask. Damn Google. */
-#ifdef__KERNEL__
+#ifdef __KERNEL__
 	unsigned int heap_mask;
 #else
 	unsigned int heap_id_mask;
