@@ -1627,6 +1627,13 @@ config CPU_VOLTAGE_TABLE
 	default n
 	help
 	  Krait User Votlage Control
+
+config APQ8064_GPU_OVERCLOCK
+	bool "Enable GPU Overclocking option"
+	default n
+	help
+	  APQ8064 GPU overclocking to 487,5MHz
+
 config MSM_AVS_HW
 	bool "Enable Adaptive Voltage Scaling (AVS)"
 	default n
